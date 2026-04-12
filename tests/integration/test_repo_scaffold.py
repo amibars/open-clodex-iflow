@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import venv
 from pathlib import Path
 
 
@@ -50,6 +51,36 @@ def test_package_entrypoint_doctor_runs_with_src_pythonpath():
         [sys.executable, "-m", "open_clodex_iflow", "doctor"],
         cwd=root,
         env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert '"codex"' in result.stdout
+
+
+def test_installed_console_script_doctor_runs_from_isolated_venv(tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    venv_dir = tmp_path / "venv"
+    venv.EnvBuilder(with_pip=True).create(venv_dir)
+
+    scripts_dir = venv_dir / ("Scripts" if os.name == "nt" else "bin")
+    python_bin = scripts_dir / ("python.exe" if os.name == "nt" else "python")
+    cli_bin = scripts_dir / ("open-clodex-iflow.exe" if os.name == "nt" else "open-clodex-iflow")
+
+    install = subprocess.run(
+        [str(python_bin), "-m", "pip", "install", "-e", str(root)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert install.returncode == 0, install.stderr
+    assert cli_bin.exists(), f"Installed console script not found: {cli_bin}"
+
+    result = subprocess.run(
+        [str(cli_bin), "doctor"],
+        cwd=root,
         capture_output=True,
         text=True,
         check=False,

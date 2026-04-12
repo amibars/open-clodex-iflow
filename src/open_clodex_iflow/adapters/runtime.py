@@ -1,14 +1,29 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
 from open_clodex_iflow.contracts import ArtifactPacket, ProviderReview, write_json
 
 RUNTIME_PROVIDERS = ("claude", "iflow", "opencode")
+ALLOWED_VERDICTS = {"proceed", "fix_code", "fix_plan", "block"}
+ALLOWED_CONFIDENCE = {"low", "medium", "high"}
+REQUIRED_REVIEW_KEYS = {
+    "provider",
+    "verdict",
+    "summary",
+    "blocking_findings",
+    "non_blocking_notes",
+    "tests_to_add",
+    "plan_risks",
+    "confidence",
+}
 
 
 def runnable_provider_names(
@@ -71,32 +86,8 @@ def stringify_list(value: Any) -> list[str]:
     return [str(value)]
 
 
-def find_review_payload(value: Any) -> dict[str, Any] | None:
-    if isinstance(value, dict):
-        if "verdict" in value:
-            return value
-        for nested in value.values():
-            match = find_review_payload(nested)
-            if match is not None:
-                return match
-        return None
-
-    if isinstance(value, list):
-        for item in value:
-            match = find_review_payload(item)
-            if match is not None:
-                return match
-        return None
-
-    if isinstance(value, str):
-        stripped = value.strip()
-        if stripped.startswith("{") or stripped.startswith("["):
-            try:
-                parsed = json.loads(stripped)
-            except json.JSONDecodeError:
-                return None
-            return find_review_payload(parsed)
-    return None
+def is_review_payload(value: Any) -> bool:
+    return isinstance(value, dict) and REQUIRED_REVIEW_KEYS.issubset(value.keys())
 
 
 def parse_review_text(text: str) -> dict[str, Any]:
@@ -128,9 +119,8 @@ def parse_review_text(text: str) -> dict[str, Any]:
             raise ValueError("provider output did not contain valid JSON") from exc
 
     for candidate in candidates:
-        payload = find_review_payload(candidate)
-        if payload is not None:
-            return payload
+        if is_review_payload(candidate):
+            return candidate
 
     raise ValueError("provider output did not contain a review payload")
 
@@ -143,9 +133,16 @@ def normalize_review(
     raw_output_file: Path,
     log_file: Path,
 ) -> ProviderReview:
+    provider_name = str(payload.get("provider", ""))
+    if provider_name != provider:
+        raise ValueError(f"provider field mismatch: expected {provider}, got {provider_name or 'empty'}")
+
     verdict = str(payload.get("verdict", "block"))
-    if verdict not in {"proceed", "fix_code", "fix_plan", "block"}:
+    if verdict not in ALLOWED_VERDICTS:
         raise ValueError(f"unsupported verdict: {verdict}")
+    confidence = str(payload.get("confidence", "medium"))
+    if confidence not in ALLOWED_CONFIDENCE:
+        raise ValueError(f"unsupported confidence: {confidence}")
     return ProviderReview(
         provider=provider,
         review_stage="runtime",
@@ -155,7 +152,7 @@ def normalize_review(
         non_blocking_notes=stringify_list(payload.get("non_blocking_notes")),
         tests_to_add=stringify_list(payload.get("tests_to_add")),
         plan_risks=stringify_list(payload.get("plan_risks")),
-        confidence=str(payload.get("confidence", "medium")),
+        confidence=confidence,
         runtime_mode=runtime_mode,
         raw_output_file=str(raw_output_file),
         log_file=str(log_file),
@@ -194,7 +191,10 @@ def execute_headless(
     stdout_path: Path,
     stderr_path: Path,
     timeout_seconds: int,
+    extra_env: dict[str, str] | None = None,
 ) -> tuple[int, str, str]:
+    process_env = os.environ.copy()
+    process_env.update(extra_env or {})
     completed = subprocess.run(
         command,
         cwd=workdir,
@@ -203,10 +203,23 @@ def execute_headless(
         encoding="utf-8",
         timeout=timeout_seconds,
         check=False,
+        env=process_env,
     )
     stdout_path.write_text(completed.stdout, encoding="utf-8")
     stderr_path.write_text(completed.stderr, encoding="utf-8")
     return completed.returncode, completed.stdout, completed.stderr
+
+
+def _visible_stdout_reader(
+    process: subprocess.Popen[str],
+    provider: str,
+    collected: list[str],
+) -> None:
+    assert process.stdout is not None
+    for line in iter(process.stdout.readline, ""):
+        collected.append(line)
+        print(f"[{provider}] {line}", end="")
+    process.stdout.close()
 
 
 def execute_visible(
@@ -217,7 +230,10 @@ def execute_visible(
     stdout_path: Path,
     stderr_path: Path,
     timeout_seconds: int,
+    extra_env: dict[str, str] | None = None,
 ) -> tuple[int, str, str]:
+    process_env = os.environ.copy()
+    process_env.update(extra_env or {})
     process = subprocess.Popen(
         command,
         cwd=workdir,
@@ -225,22 +241,48 @@ def execute_visible(
         stderr=subprocess.STDOUT,
         text=True,
         encoding="utf-8",
+        bufsize=1,
+        env=process_env,
     )
     collected: list[str] = []
+    reader = threading.Thread(
+        target=_visible_stdout_reader,
+        args=(process, provider, collected),
+        daemon=True,
+    )
+    reader.start()
+    deadline = time.monotonic() + timeout_seconds
     try:
-        assert process.stdout is not None
-        for line in process.stdout:
-            collected.append(line)
-            print(f"[{provider}] {line}", end="")
-        return_code = process.wait(timeout=timeout_seconds)
+        while True:
+            return_code = process.poll()
+            if return_code is not None:
+                break
+            if time.monotonic() >= deadline:
+                process.kill()
+                process.wait()
+                reader.join(timeout=1)
+                raise subprocess.TimeoutExpired(command, timeout_seconds)
+            reader.join(timeout=0.1)
     except subprocess.TimeoutExpired as exc:
-        process.kill()
         raise exc
+    finally:
+        reader.join(timeout=1)
 
     stdout_text = "".join(collected)
     stdout_path.write_text(stdout_text, encoding="utf-8")
     stderr_path.write_text("", encoding="utf-8")
     return return_code, stdout_text, ""
+
+
+def select_runner(runtime_mode: str):
+    runners = {
+        "headless": execute_headless,
+        "windowed": execute_visible,
+    }
+    try:
+        return runners[runtime_mode]
+    except KeyError as exc:
+        raise ValueError(f"unsupported runtime mode: {runtime_mode}") from exc
 
 
 def run_provider_review(
@@ -252,6 +294,7 @@ def run_provider_review(
     runtime_mode: str,
     timeout_seconds: int = 180,
     python_executable: Path | None = None,
+    provider_override: dict[str, object] | None = None,
 ) -> ProviderReview:
     output_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = output_dir / "stdout.txt"
@@ -269,26 +312,23 @@ def run_provider_review(
         workdir=Path.cwd(),
         python_executable=python_executable,
     )
+    runner = select_runner(runtime_mode)
+    extra_env = {}
+    if provider_override:
+        env_map = provider_override.get("env", {})
+        if isinstance(env_map, dict):
+            extra_env.update({str(key): str(value) for key, value in env_map.items()})
 
     try:
-        if runtime_mode == "windowed":
-            return_code, stdout_text, stderr_text = execute_visible(
-                provider,
-                command=command,
-                workdir=Path.cwd(),
-                stdout_path=stdout_path,
-                stderr_path=stderr_path,
-                timeout_seconds=timeout_seconds,
-            )
-        else:
-            return_code, stdout_text, stderr_text = execute_headless(
-                provider,
-                command=command,
-                workdir=Path.cwd(),
-                stdout_path=stdout_path,
-                stderr_path=stderr_path,
-                timeout_seconds=timeout_seconds,
-            )
+        return_code, stdout_text, stderr_text = runner(
+            provider,
+            command=command,
+            workdir=Path.cwd(),
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            timeout_seconds=timeout_seconds,
+            extra_env=extra_env,
+        )
     except subprocess.TimeoutExpired:
         stdout_path.write_text(
             f"{provider} timed out after {timeout_seconds}s before stdout could be collected.\n",

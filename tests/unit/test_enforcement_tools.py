@@ -65,3 +65,28 @@ def test_tdd_guard_flags_unmapped_source_files(tmp_path):
     violations = tdd_guard.collect_violations(root)
 
     assert any("unmapped source file" in violation for violation in violations)
+
+
+def test_tdd_guard_flags_missing_matching_tests_for_declared_rule(tmp_path):
+    root = tmp_path
+    (root / "src" / "open_clodex_iflow").mkdir(parents=True)
+    (root / "enforcement").mkdir()
+    (root / "scripts").mkdir()
+    (root / "src" / "open_clodex_iflow" / "covered_module.py").write_text("x = 1\n", encoding="utf-8")
+    (root / "enforcement" / "tdd_guard.json").write_text(
+        json.dumps(
+            {
+                "required": [
+                    {
+                        "source": "src/open_clodex_iflow/covered_module.py",
+                        "tests": ["tests/unit/test_missing.py"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    violations = tdd_guard.collect_violations(root)
+
+    assert any("has no matching tests" in violation for violation in violations)

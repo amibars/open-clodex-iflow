@@ -6,7 +6,11 @@ on:
 
 jobs:
   quality-gates:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,8 +23,20 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -e .[dev]
 
-      - name: Run local-equivalent gates
+      - name: Run local-equivalent gates on Unix
+        if: runner.os != 'Windows'
         run: make check
+
+      - name: Run local-equivalent gates on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m ruff check .
+          python enforcement/deps_rules.py
+          python enforcement/tdd_guard.py
+          python scripts/validate_story.py --all
+          python -m pytest tests/unit tests/integration -q
+          python enforcement/secret_scan.py
 
       - name: Run skeleton tester
         run: python scripts/run_skeleton_tester.py

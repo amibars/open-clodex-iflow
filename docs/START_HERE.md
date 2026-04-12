@@ -30,8 +30,8 @@
 
 ### Layer 2: pre-commit parity
 
-- `.pre-commit-config.yaml` должен отражать те же локальные проверки, которые ожидаются до публикации.
-- Если локальные правила меняются, `pre-commit` обновляется в том же change set.
+- `.pre-commit-config.yaml` содержит критические enforcement-скрипты (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`), чтобы ключевой guard layer оставался синхронизированным с локальными gates.
+- Если эти скрипты меняются или добавляются новые guard-команды, обновляйте `pre-commit` в том же change set, даже если `make check` покрывает еще больше команд.
 
 ### Layer 3: CI parity
 

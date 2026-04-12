@@ -18,11 +18,15 @@
 - [x] Implement `solo`
 - [x] Implement `orch`
 - [x] Add layer isolation, TDD guard, and pre-commit baseline
-- [ ] Add custom API/custom URL override config
+- [x] Add custom API/custom URL override config
 
 ## P2
 
-- [ ] Add headless/windowed runner abstraction
+- [x] Add headless/windowed runner abstraction
 - [x] Add session logging and trace ids
-- [ ] Replace preflight-only `/orch` with real provider subprocess execution
-- [ ] Add richer tests and CI
+- [x] Replace preflight-only `/orch` with real provider subprocess execution
+- [x] Add richer tests and CI
+
+## Guide adaptation deltas
+
+The initial guide deltas have been closed. Any future runtime expansion beyond this baseline should be tracked as new product work rather than as unresolved bootstrap parity debt.

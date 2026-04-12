@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
+from open_clodex_iflow.adapters import runtime as runtime_module
 from open_clodex_iflow.orchestration.runtime import run_orchestration
 
 
@@ -50,6 +52,73 @@ from __future__ import annotations
 import time
 
 time.sleep({seconds})
+    """
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_partial_output_provider_script(path: Path, *, seconds: int) -> None:
+    script = f"""
+from __future__ import annotations
+
+import sys
+import time
+
+sys.stdout.write("partial")
+sys.stdout.flush()
+time.sleep({seconds})
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_nested_payload_provider_script(path: Path, provider: str) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+
+print(json.dumps({{"meta": {{"provider": "{provider}", "verdict": "proceed"}}}}))
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_invalid_confidence_provider_script(path: Path, provider: str) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+
+print(json.dumps({{
+    "provider": "{provider}",
+    "verdict": "proceed",
+    "summary": "{provider} completed review",
+    "blocking_findings": [],
+    "non_blocking_notes": [],
+    "tests_to_add": [],
+    "plan_risks": [],
+    "confidence": "whatever"
+}}))
+    """
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_env_sensitive_provider_script(path: Path, provider: str, env_var: str) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+import os
+
+value = os.environ.get("{env_var}", "")
+print(json.dumps({{
+    "provider": "{provider}",
+    "verdict": "proceed" if value == "https://llm.local" else "block",
+    "summary": value or "missing-override",
+    "blocking_findings": [] if value == "https://llm.local" else ["override missing"],
+    "non_blocking_notes": [],
+    "tests_to_add": [],
+    "plan_risks": [],
+    "confidence": "high"
+}}))
 """
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
@@ -103,6 +172,11 @@ def test_run_orchestration_emits_provider_reviews_and_aggregates_verdict(tmp_pat
     assert (tmp_path / "session" / "providers" / "claude" / "review.json").exists()
     assert (tmp_path / "session" / "providers" / "iflow" / "review.json").exists()
     assert (tmp_path / "session" / "session.log").exists()
+
+
+def test_select_runner_returns_expected_execution_function():
+    assert runtime_module.select_runner("headless") is runtime_module.execute_headless
+    assert runtime_module.select_runner("windowed") is runtime_module.execute_visible
 
 
 def test_run_orchestration_creates_synthetic_block_on_invalid_provider_output(tmp_path):
@@ -195,3 +269,149 @@ def test_run_orchestration_timeout_writes_placeholder_log_files(tmp_path):
     assert review.verdict == "block"
     assert (tmp_path / "session" / "providers" / "claude" / "stdout.txt").exists()
     assert (tmp_path / "session" / "providers" / "claude" / "raw_output.txt").exists()
+
+
+def test_run_orchestration_logs_dropped_requested_providers(tmp_path):
+    snapshot = runtime_snapshot(
+        tmp_path,
+        {
+            "opencode": {"verdict": "proceed"},
+        },
+    )
+
+    artifact, _ = run_orchestration(
+        task="review selected providers",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode", "missing", "codex"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    session_log = (tmp_path / "session" / "session.log").read_text(encoding="utf-8")
+    assert artifact.planned_providers == ["opencode"]
+    assert any("missing" in note for note in artifact.notes)
+    assert any("codex" in note for note in artifact.notes)
+    assert "dropped_requested_providers=missing,codex" in session_log
+
+
+def test_run_orchestration_rejects_nested_incidental_verdict_payload(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_nested_payload_provider_script(script_path, "opencode")
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="review nested payload",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "block"
+    provider_review = review.provider_reviews[0]
+    assert provider_review.review_stage == "synthetic-failure"
+    assert provider_review.blocking_findings
+
+
+def test_run_orchestration_rejects_invalid_confidence_value(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_invalid_confidence_provider_script(script_path, "opencode")
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="review invalid confidence",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "block"
+    provider_review = review.provider_reviews[0]
+    assert provider_review.review_stage == "synthetic-failure"
+    assert provider_review.blocking_findings
+
+
+def test_windowed_timeout_respects_timeout_with_partial_output(tmp_path):
+    script_path = tmp_path / "claude.py"
+    write_partial_output_provider_script(script_path, seconds=2)
+    snapshot = {
+        "claude": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/claude"],
+        }
+    }
+
+    started = time.monotonic()
+    _, review = run_orchestration(
+        task="windowed timeout",
+        runtime_mode="windowed",
+        provider_snapshot=snapshot,
+        requested_providers=["claude"],
+        timeout_seconds=1,
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+    elapsed = time.monotonic() - started
+
+    assert review.verdict == "block"
+    assert elapsed < 1.8
+
+
+def test_run_orchestration_applies_provider_override_env_from_config(tmp_path, monkeypatch):
+    script_path = tmp_path / "opencode.py"
+    write_env_sensitive_provider_script(script_path, "opencode", "TEST_PROVIDER_BASE_URL")
+    config_path = tmp_path / "providers.json"
+    config_path.write_text(
+        """
+{
+  "providers": {
+    "opencode": {
+      "base_url": "https://llm.local",
+      "env": {
+        "TEST_PROVIDER_BASE_URL": "https://llm.local"
+      }
+    }
+  }
+}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OPEN_CLODEX_IFLOW_PROVIDER_CONFIG", str(config_path))
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    artifact, review = run_orchestration(
+        task="review with override config",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "proceed"
+    assert review.provider_reviews[0].summary == "https://llm.local"
+    assert any("override config" in note for note in artifact.notes)

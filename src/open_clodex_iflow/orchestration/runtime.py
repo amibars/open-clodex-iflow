@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from open_clodex_iflow.adapters.discovery import load_provider_override_config
 from open_clodex_iflow.adapters.runtime import run_provider_review, runnable_provider_names
 from open_clodex_iflow.contracts import ArtifactPacket, ConsolidatedReview
 from open_clodex_iflow.orchestration.preflight import (
@@ -27,6 +28,7 @@ def run_orchestration(
     python_executable: Path | None = None,
 ) -> tuple[ArtifactPacket, ConsolidatedReview]:
     runnable_providers = runnable_provider_names(provider_snapshot, requested_providers)
+    provider_overrides = load_provider_override_config()
     artifact = build_artifact_packet(
         mode="orch",
         task=task,
@@ -36,6 +38,26 @@ def run_orchestration(
         packet_stage="runtime-execution",
         next_step="Inspect provider reviews and consolidated verdict.",
     )
+    dropped_requested_providers = [
+        provider
+        for provider in (requested_providers or [])
+        if provider not in runnable_providers
+    ]
+    if dropped_requested_providers:
+        artifact.notes.append(
+            "Dropped requested providers that are not runnable in the current session: "
+            + ", ".join(dropped_requested_providers)
+            + "."
+        )
+    configured_override_providers = [
+        provider for provider in runnable_providers if provider_overrides.get(provider)
+    ]
+    if configured_override_providers:
+        artifact.notes.append(
+            "Provider override config detected for: "
+            + ", ".join(configured_override_providers)
+            + "."
+        )
 
     output_dir = output_dir.resolve()
     session_log_lines = [
@@ -43,6 +65,18 @@ def run_orchestration(
         f"runtime_mode={runtime_mode}",
         f"planned_providers={','.join(runnable_providers) if runnable_providers else 'none'}",
     ]
+    if dropped_requested_providers:
+        session_log_lines.append(
+            f"dropped_requested_providers={','.join(dropped_requested_providers)}"
+        )
+    for provider in configured_override_providers:
+        override = provider_overrides[provider]
+        base_url = override.get("base_url") or "unset"
+        env_map = override.get("env", {})
+        env_keys = ",".join(sorted(env_map.keys())) if isinstance(env_map, dict) and env_map else "none"
+        session_log_lines.append(
+            f"provider_override={provider}:base_url={base_url}:env_keys={env_keys}"
+        )
 
     if not artifact.task or not runnable_providers:
         review = build_consolidated_review(artifact)
@@ -62,6 +96,7 @@ def run_orchestration(
             runtime_mode=runtime_mode,
             timeout_seconds=timeout_seconds,
             python_executable=python_executable,
+            provider_override=provider_overrides.get(provider),
         )
         provider_reviews.append(provider_review)
         session_log_lines.append(

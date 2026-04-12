@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 from open_clodex_iflow.adapters.discovery import discover_cli_state
-from open_clodex_iflow.contracts import write_json
+from open_clodex_iflow.contracts import new_trace_id, write_json
 from open_clodex_iflow.orchestration.preflight import build_artifact_packet
 from open_clodex_iflow.orchestration.runtime import run_orchestration
 from open_clodex_iflow.scaffold.bootstrap import scaffold_workspace
@@ -98,7 +98,7 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     if args.command == "orch":
         snapshot = discover_cli_state()
-        output_dir = args.output_dir or default_session_dir("orch-session")
+        output_dir = args.output_dir or default_session_dir(new_trace_id())
         artifact, review = run_orchestration(
             task=args.task,
             runtime_mode=args.mode,

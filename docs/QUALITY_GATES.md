@@ -72,5 +72,5 @@
 - all unit and integration smoke tests green
 - story validator green
 - standalone skeleton tester green
-- `pre-commit` config exists and mirrors local enforcement commands
+- `pre-commit` config exists and locks in the key enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`) even though `make check` runs the broader gate
 - `.github/workflows/ci.yml` mirrors the full local gate

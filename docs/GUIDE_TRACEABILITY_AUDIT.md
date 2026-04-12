@@ -18,6 +18,8 @@
 - часть protocol-level требований была внедрена уже в remediation pass
 - исходно несколько guide-файлов были reference-only или не были приняты в проект как отдельные артефакты; ниже зафиксировано уже текущее исправленное состояние repo
 
+README.md, TODO.md и этот audit теперь формируют единую authoritative snapshot, который описывает, какие адаптации уже сделаны и как repo-native baseline соотносится с guide без притворства о verbatim copy.
+
 ---
 
 ## Status legend
@@ -90,8 +92,13 @@
 
 ## Confirmed gaps
 
-1. Guide parity was not completed before first code bootstrap; parity was restored during remediation.
-2. Repo-native equivalents are product-specific adaptations, not verbatim copies of the guide files.
+1. Guide parity was not completed before the first bootstrap pass; parity was restored afterwards through targeted remediation and repo-native adaptation.
+2. Repo-native equivalents are product-specific adaptations with their own articulation for this repo, so they should not be interpreted as verbatim guide copies.
+3. Bootstrap parity debt for this repo has been closed; any later scope growth should be tracked as new product work rather than as unresolved guide-migration debt.
+
+## Explicit deltas vs guide
+
+No open bootstrap-parity deltas remain. The repo still makes product-scope choices that intentionally differ from a hypothetical fuller orchestrator, but those are tracked as product non-goals and future work rather than as missing guide-required bootstrap artifacts.
 
 ---
 

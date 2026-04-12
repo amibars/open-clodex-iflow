@@ -60,13 +60,21 @@ open-clodex-iflow scaffold C:\Projects\my-new-workspace
   - `/orch` runnable-provider execution for `claude`, `iflow`, and `opencode`
   - per-provider `review.json`, `session.log`, and consolidated aggregation with synthetic failure fallback
   - `--providers` and `--timeout-seconds` operator controls for runtime execution
+  - provider override config through `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - Not implemented yet:
   - parallel fan-out or debate loop
-  - custom API/base URL override path
   - dedicated OS-window spawning for each worker lane
 
 ## Current state
 
 This repository is now a working sequential v1 orchestrator baseline.
 Provider success still depends on each installed CLI's auth/runtime health, but the repo no longer stops at preflight-only `/orch`.
-As of the latest live smoke pass, `opencode` is confirmed end-to-end, while `claude` and `iflow` currently fall back to synthetic blocking reviews on timeout in this environment.
+As of the latest live smoke pass, all three reviewed providers remain environment-dependent in this machine/session: `claude` and `iflow` currently fall back to synthetic blocking reviews on timeout, and `opencode` has shown both a successful live run and a later timeout-driven synthetic block. The runtime path is implemented and verified; provider reliability still depends on the installed CLI state in the current environment.
+
+## Guide adaptation status
+
+The repo follows a repo-native adaptation of the Iron Dome guide rather than claiming a verbatim copy of every guide file.
+All decisions about how the repo-native artifacts map back to the guide are captured in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
+The original bootstrap parity gaps have been closed; what remains in the repo is product scope that is intentionally out of the current v1 baseline, not unresolved guide debt.
+
+Pre-commit hooks currently run the key enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, and `enforcement/secret_scan.py`) to keep that guard surface consistent with local enforcement policy; more comprehensive verification still happens through `make check` and CI.

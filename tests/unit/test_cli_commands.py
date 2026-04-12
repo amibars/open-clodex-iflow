@@ -91,3 +91,46 @@ def test_scaffold_command_creates_workspace(tmp_path):
     assert exit_code == 0
     assert (destination / "docs" / "PRD.md").exists()
     assert (destination / "tasks" / "stories" / "1.1-repo-bootstrap.story.md").exists()
+
+
+def test_orch_default_output_dir_is_not_constant(monkeypatch):
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        cli,
+        "discover_cli_state",
+        lambda: {
+            "codex": {"available": True, "binary": "codex", "state_dirs": ["C:/Users/karte/.codex"]},
+        },
+    )
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-12T00:00:00Z",
+        mode="orch",
+        task="audit bootstrap",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=[],
+        provider_snapshot={},
+        next_step="Inspect runtime reviews.",
+    )
+    review = ConsolidatedReview(
+        trace_id="trace-test",
+        generated_at="2026-04-12T00:00:01Z",
+        review_stage="runtime",
+        verdict="block",
+        provider_reviews=[],
+        next_action="Provide providers",
+    )
+    monkeypatch.setattr(
+        cli,
+        "run_orchestration",
+        lambda **kwargs: captured.update(kwargs) or (artifact, review),
+    )
+
+    exit_code = cli.main(["orch", "audit bootstrap"])
+
+    assert exit_code == 0
+    assert captured["output_dir"].name != "orch-session"

@@ -63,6 +63,7 @@
 - system CLIs first
 - local state/auth reuse first
 - custom API/custom URL only as explicit override
+- explicit override config is loaded from `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - no raw chat history handoff; only structured packets
 - no silent downgrade from `/orch` to `/solo`
 - no hidden reviewer with write authority over repo truth
