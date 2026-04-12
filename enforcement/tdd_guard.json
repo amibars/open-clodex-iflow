@@ -1,0 +1,77 @@
+{
+  "required": [
+    {
+      "source": "src/open_clodex_iflow/cli.py",
+      "tests": [
+        "tests/unit/test_cli_smoke.py",
+        "tests/unit/test_cli_commands.py"
+      ]
+    },
+    {
+      "source": "src/open_clodex_iflow/contracts.py",
+      "tests": [
+        "tests/unit/test_packets.py"
+      ]
+    },
+    {
+      "source": "src/open_clodex_iflow/adapters/discovery.py",
+      "tests": [
+        "tests/unit/test_discovery.py"
+      ]
+    },
+    {
+      "source": "src/open_clodex_iflow/adapters/runtime.py",
+      "tests": [
+        "tests/unit/test_orch_runtime.py"
+      ]
+    },
+    {
+      "source": "src/open_clodex_iflow/orchestration/preflight.py",
+      "tests": [
+        "tests/unit/test_packets.py"
+      ]
+    },
+    {
+      "source": "src/open_clodex_iflow/orchestration/runtime.py",
+      "tests": [
+        "tests/unit/test_orch_runtime.py"
+      ]
+    },
+    {
+      "source": "src/open_clodex_iflow/scaffold/bootstrap.py",
+      "tests": [
+        "tests/unit/test_scaffold.py"
+      ]
+    },
+    {
+      "source": "enforcement/deps_rules.py",
+      "tests": [
+        "tests/unit/test_enforcement_tools.py"
+      ]
+    },
+    {
+      "source": "enforcement/secret_scan.py",
+      "tests": [
+        "tests/unit/test_enforcement_tools.py"
+      ]
+    },
+    {
+      "source": "enforcement/tdd_guard.py",
+      "tests": [
+        "tests/unit/test_enforcement_tools.py"
+      ]
+    },
+    {
+      "source": "scripts/validate_story.py",
+      "tests": [
+        "tests/unit/test_enforcement_tools.py"
+      ]
+    },
+    {
+      "source": "scripts/run_skeleton_tester.py",
+      "tests": [
+        "tests/unit/test_skeleton_tester.py"
+      ]
+    }
+  ]
+}

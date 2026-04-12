@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-clodex-iflow"
+version = "0.1.0"
+description = "Windows-first orchestration and scaffold tool for Codex, Claude Code, iFlow, and OpenCode."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "karte" }
+]
+dependencies = []
+
+[project.scripts]
+open-clodex-iflow = "open_clodex_iflow.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "pre-commit>=4.0",
+  "pytest>=8.3",
+  "ruff>=0.11.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

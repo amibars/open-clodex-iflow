@@ -1,0 +1,15 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+.smoke/
+.open-clodex-iflow/
+*.egg-info/
+*.pyc
+*.pyo
+*.pyd
+*.log
+logs/
