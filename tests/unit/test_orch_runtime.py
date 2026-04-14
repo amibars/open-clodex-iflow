@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -101,6 +102,48 @@ print(json.dumps({{
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
 
+def write_wrapped_opencode_payload_provider_script(path: Path, provider: str) -> None:
+    review_payload = {
+        "provider": provider,
+        "verdict": "fix_plan",
+        "summary": "wrapped payload",
+        "blocking_findings": ["missing changed_files"],
+        "non_blocking_notes": ["binary available"],
+        "tests_to_add": [],
+        "plan_risks": ["empty packet"],
+        "confidence": 0.95,
+    }
+    event_lines = [
+        {
+            "type": "step_start",
+            "timestamp": 1,
+            "part": {"type": "step-start"},
+        },
+        {
+            "type": "text",
+            "timestamp": 2,
+            "part": {
+                "type": "text",
+                "text": json.dumps(review_payload, indent=2),
+            },
+        },
+        {
+            "type": "step_finish",
+            "timestamp": 3,
+            "part": {"type": "step-finish", "reason": "stop"},
+        },
+    ]
+    script = f"""
+from __future__ import annotations
+
+import json
+
+for line in {event_lines!r}:
+    print(json.dumps(line))
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
 def write_env_sensitive_provider_script(path: Path, provider: str, env_var: str) -> None:
     script = f"""
 from __future__ import annotations
@@ -177,6 +220,52 @@ def test_run_orchestration_emits_provider_reviews_and_aggregates_verdict(tmp_pat
 def test_select_runner_returns_expected_execution_function():
     assert runtime_module.select_runner("headless") is runtime_module.execute_headless
     assert runtime_module.select_runner("windowed") is runtime_module.execute_visible
+
+
+def test_parse_review_text_extracts_review_from_wrapped_opencode_events():
+    review_payload = {
+        "provider": "opencode",
+        "verdict": "fix_plan",
+        "summary": "wrapped payload",
+        "blocking_findings": ["missing changed_files"],
+        "non_blocking_notes": ["binary available"],
+        "tests_to_add": [],
+        "plan_risks": ["empty packet"],
+        "confidence": 0.95,
+    }
+    wrapped = "\n".join(
+        [
+            json.dumps({"type": "step_start", "part": {"type": "step-start"}}),
+            json.dumps({"type": "text", "part": {"type": "text", "text": json.dumps(review_payload)}}),
+            json.dumps({"type": "step_finish", "part": {"type": "step-finish", "reason": "stop"}}),
+        ]
+    )
+
+    payload = runtime_module.parse_review_text(wrapped)
+
+    assert payload["provider"] == "opencode"
+    assert payload["verdict"] == "fix_plan"
+
+
+def test_normalize_review_accepts_numeric_confidence():
+    review = runtime_module.normalize_review(
+        "opencode",
+        {
+            "provider": "opencode",
+            "verdict": "proceed",
+            "summary": "numeric confidence payload",
+            "blocking_findings": [],
+            "non_blocking_notes": [],
+            "tests_to_add": [],
+            "plan_risks": [],
+            "confidence": 0.95,
+        },
+        runtime_mode="headless",
+        raw_output_file=Path("raw.json"),
+        log_file=Path("stdout.txt"),
+    )
+
+    assert review.confidence == "high"
 
 
 def test_run_orchestration_creates_synthetic_block_on_invalid_provider_output(tmp_path):
@@ -345,6 +434,32 @@ def test_run_orchestration_rejects_invalid_confidence_value(tmp_path):
     provider_review = review.provider_reviews[0]
     assert provider_review.review_stage == "synthetic-failure"
     assert provider_review.blocking_findings
+
+
+def test_run_orchestration_accepts_wrapped_opencode_event_output(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_wrapped_opencode_payload_provider_script(script_path, "opencode")
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="review wrapped output",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "fix_plan"
+    provider_review = review.provider_reviews[0]
+    assert provider_review.review_stage == "runtime"
+    assert provider_review.confidence == "high"
 
 
 def test_windowed_timeout_respects_timeout_with_partial_output(tmp_path):

@@ -90,6 +90,35 @@ def is_review_payload(value: Any) -> bool:
     return isinstance(value, dict) and REQUIRED_REVIEW_KEYS.issubset(value.keys())
 
 
+def find_review_payload(value: Any) -> dict[str, Any] | None:
+    if is_review_payload(value):
+        return value
+
+    if isinstance(value, dict):
+        for nested in value.values():
+            match = find_review_payload(nested)
+            if match is not None:
+                return match
+        return None
+
+    if isinstance(value, list):
+        for item in value:
+            match = find_review_payload(item)
+            if match is not None:
+                return match
+        return None
+
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                return None
+            return find_review_payload(parsed)
+    return None
+
+
 def parse_review_text(text: str) -> dict[str, Any]:
     stripped = text.strip()
     if not stripped:
@@ -119,10 +148,39 @@ def parse_review_text(text: str) -> dict[str, Any]:
             raise ValueError("provider output did not contain valid JSON") from exc
 
     for candidate in candidates:
-        if is_review_payload(candidate):
-            return candidate
+        payload = find_review_payload(candidate)
+        if payload is not None:
+            return payload
 
     raise ValueError("provider output did not contain a review payload")
+
+
+def normalize_confidence(value: Any) -> str:
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in ALLOWED_CONFIDENCE:
+            return normalized
+        try:
+            value = float(normalized)
+        except ValueError as exc:
+            raise ValueError(f"unsupported confidence: {value}") from exc
+
+    if isinstance(value, (int, float)):
+        numeric = float(value)
+        if 0.0 <= numeric <= 1.0:
+            if numeric < 0.34:
+                return "low"
+            if numeric < 0.67:
+                return "medium"
+            return "high"
+        if 0.0 <= numeric <= 100.0:
+            if numeric < 34.0:
+                return "low"
+            if numeric < 67.0:
+                return "medium"
+            return "high"
+
+    raise ValueError(f"unsupported confidence: {value}")
 
 
 def normalize_review(
@@ -140,9 +198,7 @@ def normalize_review(
     verdict = str(payload.get("verdict", "block"))
     if verdict not in ALLOWED_VERDICTS:
         raise ValueError(f"unsupported verdict: {verdict}")
-    confidence = str(payload.get("confidence", "medium"))
-    if confidence not in ALLOWED_CONFIDENCE:
-        raise ValueError(f"unsupported confidence: {confidence}")
+    confidence = normalize_confidence(payload.get("confidence", "medium"))
     return ProviderReview(
         provider=provider,
         review_stage="runtime",
