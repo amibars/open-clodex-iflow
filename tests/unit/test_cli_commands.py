@@ -93,9 +93,12 @@ def test_scaffold_command_creates_workspace(tmp_path):
     assert (destination / "tasks" / "stories" / "1.1-repo-bootstrap.story.md").exists()
 
 
-def test_orch_default_output_dir_is_not_constant(monkeypatch):
+def test_orch_default_output_dir_is_trace_safe(monkeypatch, tmp_path):
     captured: dict[str, object] = {}
+    output_dirs: list[object] = []
 
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli, "new_trace_id", lambda: "trace-collision")
     monkeypatch.setattr(
         cli,
         "discover_cli_state",
@@ -103,34 +106,51 @@ def test_orch_default_output_dir_is_not_constant(monkeypatch):
             "codex": {"available": True, "binary": "codex", "state_dirs": ["C:/Users/karte/.codex"]},
         },
     )
-    artifact = ArtifactPacket(
-        trace_id="trace-test",
-        generated_at="2026-04-12T00:00:00Z",
-        mode="orch",
-        task="audit bootstrap",
-        runtime_mode="headless",
-        packet_stage="runtime-execution",
-        privacy_boundary="structured-packet-only",
-        fan_out_requested=True,
-        planned_providers=[],
-        provider_snapshot={},
-        next_step="Inspect runtime reviews.",
-    )
-    review = ConsolidatedReview(
-        trace_id="trace-test",
-        generated_at="2026-04-12T00:00:01Z",
-        review_stage="runtime",
-        verdict="block",
-        provider_reviews=[],
-        next_action="Provide providers",
-    )
+
+    def fake_run_orchestration(**kwargs):
+        output_dirs.append(kwargs["output_dir"])
+        task = kwargs["task"]
+        artifact = ArtifactPacket(
+            trace_id="trace-test",
+            generated_at="2026-04-12T00:00:00Z",
+            mode="orch",
+            task=task,
+            runtime_mode="headless",
+            packet_stage="runtime-execution",
+            privacy_boundary="structured-packet-only",
+            fan_out_requested=True,
+            planned_providers=[],
+            provider_snapshot={},
+            next_step="Inspect runtime reviews.",
+        )
+        review = ConsolidatedReview(
+            trace_id="trace-test",
+            generated_at="2026-04-12T00:00:01Z",
+            review_stage="runtime",
+            verdict="block",
+            provider_reviews=[],
+            next_action="Provide providers",
+        )
+        captured.update(kwargs)
+        return artifact, review
+
     monkeypatch.setattr(
         cli,
         "run_orchestration",
-        lambda **kwargs: captured.update(kwargs) or (artifact, review),
+        fake_run_orchestration,
     )
 
-    exit_code = cli.main(["orch", "audit bootstrap"])
+    first_exit_code = cli.main(["orch", "audit bootstrap first"])
+    second_exit_code = cli.main(["orch", "audit bootstrap second"])
 
-    assert exit_code == 0
-    assert captured["output_dir"].name != "orch-session"
+    first_output_dir, second_output_dir = output_dirs
+    first_artifact = json.loads((first_output_dir / "artifact.json").read_text(encoding="utf-8"))
+    second_artifact = json.loads((second_output_dir / "artifact.json").read_text(encoding="utf-8"))
+
+    assert first_exit_code == 0
+    assert second_exit_code == 0
+    assert first_output_dir != second_output_dir
+    assert first_output_dir.name == "trace-collision"
+    assert second_output_dir.name.startswith("trace-collision-")
+    assert first_artifact["task"] == "audit bootstrap first"
+    assert second_artifact["task"] == "audit bootstrap second"

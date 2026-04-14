@@ -41,7 +41,7 @@
 
 - `docs/GUIDE_TRACEABILITY_AUDIT.md` exists
 - matrix status matches the current repo state
-- historical note is preserved when parity was restored after bootstrap
+- explicit repo-native deltas vs guide are documented
 - if a guide-derived artifact changes, the audit is updated in the same change set
 
 ### Local fast gate
@@ -54,7 +54,9 @@
 ### Full gate
 
 - `make check`
-- CI workflow runs the same `make check` contract and then the standalone skeleton harness
+- CI workflow enforces equivalent checks:
+- Unix runners: `make check`
+- Windows runners: explicit gate steps (`ruff`, enforcement scripts, unit/integration tests, secret scan) plus standalone skeleton harness
 
 ### Human gate
 
@@ -72,5 +74,5 @@
 - all unit and integration smoke tests green
 - story validator green
 - standalone skeleton tester green
-- `pre-commit` config exists and locks in the key enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`) even though `make check` runs the broader gate
-- `.github/workflows/ci.yml` mirrors the full local gate
+- `pre-commit` config exists and locks in the minimum critical enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`)
+- `.github/workflows/ci.yml` is not weaker than the local full gate contract

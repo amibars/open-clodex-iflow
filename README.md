@@ -19,7 +19,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 - `scaffold`: bootstrap an Iron Dome-compatible workspace in a target directory
 
 Live provider status is tracked in `docs/PROVIDER_COMPATIBILITY.md`.
-Guide parity and source-of-truth coverage are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
+Guide adaptation traceability and source-of-truth coverage are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
 
 ## Install for local development
 
@@ -67,14 +67,16 @@ open-clodex-iflow scaffold C:\Projects\my-new-workspace
 
 ## Current state
 
-This repository is now a working sequential v1 orchestrator baseline.
-Provider success still depends on each installed CLI's auth/runtime health, but the repo no longer stops at preflight-only `/orch`.
-As of the latest live smoke pass, all three reviewed providers remain environment-dependent in this machine/session: `claude` and `iflow` currently fall back to synthetic blocking reviews on timeout, and `opencode` has shown both a successful live run and a later timeout-driven synthetic block. The runtime path is implemented and verified; provider reliability still depends on the installed CLI state in the current environment.
+This repository is a working sequential v1 orchestrator baseline.
+The runtime path for `/orch` is implemented for runnable providers (`claude`, `iflow`, `opencode`) and no longer stops at preflight-only orchestration.
+Live provider reliability is still environment-dependent and must be confirmed per machine/session; adapter support in code is not the same as guaranteed live success.
+See `docs/PROVIDER_COMPATIBILITY.md` for the latest documented smoke snapshot and interpretation rules.
 
 ## Guide adaptation status
 
-The repo follows a repo-native adaptation of the Iron Dome guide rather than claiming a verbatim copy of every guide file.
-All decisions about how the repo-native artifacts map back to the guide are captured in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
-The original bootstrap parity gaps have been closed; what remains in the repo is product scope that is intentionally out of the current v1 baseline, not unresolved guide debt.
+The repo follows a repo-native adaptation of the Iron Dome guide and does not claim a verbatim one-file-to-one-file copy.
+Mapping decisions and explicit adaptation deltas are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
+`TODO.md` tracks follow-up process work when guide-derived docs/process change.
 
-Pre-commit hooks currently run the key enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, and `enforcement/secret_scan.py`) to keep that guard surface consistent with local enforcement policy; more comprehensive verification still happens through `make check` and CI.
+Pre-commit hooks run a minimal local guardrail (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`).
+This pre-commit layer is intentionally narrower than the full quality gate; comprehensive verification is `make check` plus CI.

@@ -17,6 +17,14 @@ def write_session_log(path: Path, lines: list[str]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def dropped_provider_note(dropped_requested_providers: list[str]) -> str:
+    return (
+        "Dropped requested providers that are not runnable in the current session: "
+        + ", ".join(dropped_requested_providers)
+        + "."
+    )
+
+
 def run_orchestration(
     *,
     task: str,
@@ -44,11 +52,7 @@ def run_orchestration(
         if provider not in runnable_providers
     ]
     if dropped_requested_providers:
-        artifact.notes.append(
-            "Dropped requested providers that are not runnable in the current session: "
-            + ", ".join(dropped_requested_providers)
-            + "."
-        )
+        artifact.notes.append(dropped_provider_note(dropped_requested_providers))
     configured_override_providers = [
         provider for provider in runnable_providers if provider_overrides.get(provider)
     ]
@@ -80,6 +84,8 @@ def run_orchestration(
 
     if not artifact.task or not runnable_providers:
         review = build_consolidated_review(artifact)
+        if dropped_requested_providers:
+            review.non_blocking_notes.append(dropped_provider_note(dropped_requested_providers))
         session_log_lines.append(f"result={review.verdict}")
         write_session_log(output_dir / "session.log", session_log_lines)
         return artifact, review
@@ -104,6 +110,8 @@ def run_orchestration(
         )
 
     review = aggregate_provider_reviews(artifact, provider_reviews)
+    if dropped_requested_providers:
+        review.non_blocking_notes.append(dropped_provider_note(dropped_requested_providers))
     session_log_lines.append(f"result={review.verdict}")
     write_session_log(output_dir / "session.log", session_log_lines)
     return artifact, review

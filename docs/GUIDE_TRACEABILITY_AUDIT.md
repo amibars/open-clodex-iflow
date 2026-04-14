@@ -2,7 +2,7 @@
 
 # Iron Dome Guide Traceability Audit
 
-**Audit date:** 2026-04-11  
+**Audit date:** 2026-04-14  
 **Source guide:** `C:\Projects\Iron Dome [GUIDE]`  
 **Target repo:** `C:\Projects\open-clodex-iflow`
 
@@ -44,7 +44,7 @@ README.md, TODO.md и этот audit теперь формируют едину�
 | `INTRO.md` | umbrella principles for AI execution discipline | `docs/EXECUTION_PRINCIPLES.md`, `README.md`, `docs/QUALITY_GATES.md`, `docs/JTBD.md` | `covered` | Core execution discipline now has a dedicated repo-native equivalent |
 | `ORCHESTRATED md 2e7fded235658043b118c90541066c19.md` | agent orchestration patterns | `docs/ORCHESTRATED.md` | `covered` | Document now covers both the generic orchestration pattern and the product-specific `/solo`/`/orch` mapping |
 | `PRD md 2e7fded2356580f3bcf0c40317a5be8e.md` | product requirements template | `docs/PRD.md` | `covered` | Fully adapted as a product-specific PRD |
-| `QUALITY_GATES md 2e7fded2356580ea815bcbc26aae11f5.md` | command center and CI gates | `docs/QUALITY_GATES.md`, `Makefile`, `.github/workflows/ci.yml` | `covered` | Local and CI gate layers now mirror each other |
+| `QUALITY_GATES md 2e7fded2356580ea815bcbc26aae11f5.md` | command center and CI gates | `docs/QUALITY_GATES.md`, `Makefile`, `.github/workflows/ci.yml` | `covered` | Local and CI gate layers use an equivalent quality contract |
 | `reviewer.md` | repo forensics / audit reviewer persona | `reviewer.md` | `covered` | A project-native reviewer profile now exists in the repo |
 | `Skeleton Enforcement TESTER 2e7fded2356580bab51ee461d456bc22.md` | prove enforcement with intentional violations before real work | `scripts/run_skeleton_tester.py`, `skeleton-tester/README.md`, `Makefile`, `tests/unit/test_skeleton_tester.py` | `covered` | Standalone negative-validation harness now exists and is executable |
 | `SKILLS md 2e7fded2356580d8bd8fd6523a1a9486.md` | skills matrix and escalation boundaries | `docs/SKILLS.md` | `covered` | Competency matrix, tools, and escalation rules are now explicit |
@@ -64,7 +64,7 @@ README.md, TODO.md и этот audit теперь формируют едину�
 | `AGENTS ...` | `docs/AGENTS.md` | role matrix and handoff rules | repo maintainer | role/handoff change |
 | `ARCHITECTURE_BASELINE ...` | `docs/ARCHITECTURE_BASELINE.md` + `enforcement/deps_rules.py` | executable baseline and required paths | repo maintainer | layer/enforcement change |
 | `ORCHESTRATED ...` | `docs/ORCHESTRATED.md` | orchestration pattern and mode mapping | runtime owner | `/solo` or `/orch` contract change |
-| `QUALITY_GATES ...` | `docs/QUALITY_GATES.md` + `.github/workflows/ci.yml` | local/CI parity | repo maintainer | gate change |
+| `QUALITY_GATES ...` | `docs/QUALITY_GATES.md` + `.github/workflows/ci.yml` | local/CI quality contract equivalence | repo maintainer | gate change |
 | `TASKS.md` | `TASKS.md` + `tasks/epics/*` + `tasks/stories/*` | task system and story format | product owner | backlog/task-system change |
 | `Чек-лист ...` | `docs/AI_PROJECT_CHECKLIST.md` | bounded implementation checklist | repo maintainer | new implementation lane or risk class |
 
@@ -73,7 +73,7 @@ README.md, TODO.md и этот audit теперь формируют едину�
 ## Source guide snapshot and history
 
 - **Guide location used:** `C:\Projects\Iron Dome [GUIDE]`
-- **Snapshot basis:** current local file set and names observed on `2026-04-12`
+- **Snapshot basis:** current local file set and names observed on `2026-04-14`
 - **Historical note:** initial bootstrap did not start from full one-to-one guide parity; parity was restored later through repo-native equivalents and enforcement/gate updates
 - **Current-state claim:** the matrix above describes the repo as it exists now, not the state of the very first bootstrap pass
 
@@ -92,17 +92,23 @@ README.md, TODO.md и этот audit теперь формируют едину�
 
 ## Confirmed gaps
 
-1. Guide parity was not completed before the first bootstrap pass; parity was restored afterwards through targeted remediation and repo-native adaptation.
-2. Repo-native equivalents are product-specific adaptations with their own articulation for this repo, so they should not be interpreted as verbatim guide copies.
-3. Bootstrap parity debt for this repo has been closed; any later scope growth should be tracked as new product work rather than as unresolved guide-migration debt.
+1. Guide parity was not completed before the first bootstrap pass; remediation happened afterwards.
+2. Repo-native equivalents are product-specific adaptations and should not be read as verbatim guide copies.
+3. There are explicit repo-native deltas vs guide; they are tracked below and treated as accepted product/process choices unless marked otherwise.
 
 ## Explicit deltas vs guide
 
-No open bootstrap-parity deltas remain. The repo still makes product-scope choices that intentionally differ from a hypothetical fuller orchestrator, but those are tracked as product non-goals and future work rather than as missing guide-required bootstrap artifacts.
+| Delta area | Guide-oriented expectation | Repo-native state | Status |
+| --- | --- | --- | --- |
+| Artifact naming/layout | Near one-file-to-one-file naming convention | Intent preserved through repo-native artifact names and crosswalk mapping | accepted repo adaptation |
+| Pre-commit scope | Often interpreted as "parity with full local gates" | Pre-commit keeps only minimum critical enforcement scripts; full gate is `make check` + CI | accepted process split |
+| CI execution form | Single canonical command path | Unix CI runs `make check`; Windows CI runs explicit equivalent steps + standalone skeleton step | accepted platform adaptation |
+| Runtime orchestration scope | Broader orchestration pattern in guide discussions | Current baseline is sequential `/orch` without parallel debate loop and without dedicated OS-window lanes | accepted product scope limit |
+| Provider live behavior claims | Stable live success may be implied by adapter presence | Adapter support exists in code; live success remains environment-dependent and must be confirmed by smoke runs | accepted runtime constraint |
 
 ---
 
 ## Recommended closure plan
 
-1. Keep this matrix versioned and update it whenever guide-derived artifacts change.
-2. Treat any future docs/runtime divergence as a bootstrap regression, not as “later cleanup”.
+1. Keep this matrix and delta register versioned; update both whenever guide-derived artifacts or gate semantics change.
+2. Treat undocumented docs/runtime divergence as process debt and classify it explicitly (`accepted adaptation` or `needs remediation`) in the same change set.

@@ -32,6 +32,7 @@ def governed_source_files(root: Path) -> set[Path]:
 
 
 def collect_violations(root: Path) -> list[str]:
+    resolved_root = root.resolve()
     config = load_config(root)
     rules = config.get("required", [])
     if not isinstance(rules, list):
@@ -73,7 +74,9 @@ def collect_violations(root: Path) -> list[str]:
 
     unmapped_sources = sorted(governed_source_files(root) - mapped_sources)
     for path in unmapped_sources:
-        violations.append(f"unmapped source file in tdd_guard: {path.relative_to(root)}")
+        violations.append(
+            f"unmapped source file in tdd_guard: {path.relative_to(resolved_root)}"
+        )
 
     return violations
 

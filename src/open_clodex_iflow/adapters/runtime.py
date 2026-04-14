@@ -90,16 +90,19 @@ def is_review_payload(value: Any) -> bool:
     return isinstance(value, dict) and REQUIRED_REVIEW_KEYS.issubset(value.keys())
 
 
+def parse_json_candidate(value: str) -> Any | None:
+    stripped = value.strip()
+    if not stripped or stripped[0] not in "{[":
+        return None
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return None
+
+
 def find_review_payload(value: Any) -> dict[str, Any] | None:
     if is_review_payload(value):
         return value
-
-    if isinstance(value, dict):
-        for nested in value.values():
-            match = find_review_payload(nested)
-            if match is not None:
-                return match
-        return None
 
     if isinstance(value, list):
         for item in value:
@@ -108,13 +111,19 @@ def find_review_payload(value: Any) -> dict[str, Any] | None:
                 return match
         return None
 
+    if isinstance(value, dict):
+        part = value.get("part")
+        if isinstance(part, dict):
+            text_value = part.get("text")
+            if isinstance(text_value, str):
+                parsed = parse_json_candidate(text_value)
+                if parsed is not None:
+                    return find_review_payload(parsed)
+        return None
+
     if isinstance(value, str):
-        stripped = value.strip()
-        if stripped.startswith("{") or stripped.startswith("["):
-            try:
-                parsed = json.loads(stripped)
-            except json.JSONDecodeError:
-                return None
+        parsed = parse_json_candidate(value)
+        if parsed is not None:
             return find_review_payload(parsed)
     return None
 
@@ -138,14 +147,6 @@ def parse_review_text(text: str) -> dict[str, Any]:
             candidates.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-
-    if not candidates and "{" in stripped and "}" in stripped:
-        start = stripped.find("{")
-        end = stripped.rfind("}") + 1
-        try:
-            candidates.append(json.loads(stripped[start:end]))
-        except json.JSONDecodeError as exc:
-            raise ValueError("provider output did not contain valid JSON") from exc
 
     for candidate in candidates:
         payload = find_review_payload(candidate)
@@ -317,7 +318,11 @@ def execute_visible(
                 process.kill()
                 process.wait()
                 reader.join(timeout=1)
-                raise subprocess.TimeoutExpired(command, timeout_seconds)
+                raise subprocess.TimeoutExpired(
+                    command,
+                    timeout_seconds,
+                    output="".join(collected),
+                )
             reader.join(timeout=0.1)
     except subprocess.TimeoutExpired as exc:
         raise exc
@@ -385,16 +390,26 @@ def run_provider_review(
             timeout_seconds=timeout_seconds,
             extra_env=extra_env,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        timeout_note = f"{provider} timed out after {timeout_seconds}s"
+        partial_stdout = ""
+        if exc.output:
+            partial_stdout = (
+                exc.output.decode("utf-8", errors="replace")
+                if isinstance(exc.output, bytes)
+                else str(exc.output)
+            )
+        if partial_stdout and not partial_stdout.endswith("\n"):
+            partial_stdout += "\n"
         stdout_path.write_text(
-            f"{provider} timed out after {timeout_seconds}s before stdout could be collected.\n",
+            partial_stdout + f"{timeout_note} before stdout could be collected.\n",
             encoding="utf-8",
         )
         stderr_path.write_text("", encoding="utf-8")
-        raw_output_path.write_text("", encoding="utf-8")
+        raw_output_path.write_text(partial_stdout, encoding="utf-8")
         review = synthetic_failure_review(
             provider,
-            f"{provider} timed out after {timeout_seconds}s",
+            timeout_note,
             runtime_mode=runtime_mode,
             raw_output_file=raw_output_path,
             log_file=stdout_path,

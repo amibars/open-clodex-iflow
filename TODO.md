@@ -29,4 +29,8 @@
 
 ## Guide adaptation deltas
 
-The initial guide deltas have been closed. Any future runtime expansion beyond this baseline should be tracked as new product work rather than as unresolved bootstrap parity debt.
+- [x] Repository documents guide intent through repo-native artifact names and crosswalk mapping (not verbatim one-file parity).
+- [x] Pre-commit is documented as a minimum critical guardrail, while full verification remains `make check` + CI.
+- [x] Runtime baseline is explicitly scoped to sequential `/orch`; parallel/debate lanes are out of current v1 scope.
+- [x] Provider compatibility wording distinguishes adapter support from environment-dependent live success.
+- [ ] Every change to guide-derived docs/process must update `README.md`, `docs/START_HERE.md`, `docs/QUALITY_GATES.md`, `docs/GUIDE_TRACEABILITY_AUDIT.md`, and `docs/PROVIDER_COMPATIBILITY.md` in the same change set.

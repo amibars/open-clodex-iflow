@@ -102,6 +102,29 @@ print(json.dumps({{
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
 
+def write_incidental_json_provider_script(path: Path, provider: str) -> None:
+    review_payload = {
+        "provider": provider,
+        "verdict": "proceed",
+        "summary": "payload hidden inside logs",
+        "blocking_findings": [],
+        "non_blocking_notes": [],
+        "tests_to_add": [],
+        "plan_risks": [],
+        "confidence": "high",
+    }
+    script = f"""
+from __future__ import annotations
+
+import json
+
+print("runtime: boot")
+print("runtime: " + json.dumps({review_payload!r}) + " :runtime")
+print("runtime: done")
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
 def write_wrapped_opencode_payload_provider_script(path: Path, provider: str) -> None:
     review_payload = {
         "provider": provider,
@@ -368,7 +391,7 @@ def test_run_orchestration_logs_dropped_requested_providers(tmp_path):
         },
     )
 
-    artifact, _ = run_orchestration(
+    artifact, review = run_orchestration(
         task="review selected providers",
         runtime_mode="headless",
         provider_snapshot=snapshot,
@@ -381,6 +404,8 @@ def test_run_orchestration_logs_dropped_requested_providers(tmp_path):
     assert artifact.planned_providers == ["opencode"]
     assert any("missing" in note for note in artifact.notes)
     assert any("codex" in note for note in artifact.notes)
+    assert any("missing" in note for note in review.non_blocking_notes)
+    assert any("codex" in note for note in review.non_blocking_notes)
     assert "dropped_requested_providers=missing,codex" in session_log
 
 
@@ -397,6 +422,32 @@ def test_run_orchestration_rejects_nested_incidental_verdict_payload(tmp_path):
 
     _, review = run_orchestration(
         task="review nested payload",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "block"
+    provider_review = review.provider_reviews[0]
+    assert provider_review.review_stage == "synthetic-failure"
+    assert provider_review.blocking_findings
+
+
+def test_run_orchestration_rejects_incidental_json_embedded_in_log_text(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_incidental_json_provider_script(script_path, "opencode")
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="review incidental log payload",
         runtime_mode="headless",
         provider_snapshot=snapshot,
         requested_providers=["opencode"],
@@ -487,6 +538,11 @@ def test_windowed_timeout_respects_timeout_with_partial_output(tmp_path):
 
     assert review.verdict == "block"
     assert elapsed < 1.8
+    timeout_log = (tmp_path / "session" / "providers" / "claude" / "stdout.txt").read_text(
+        encoding="utf-8"
+    )
+    assert "partial" in timeout_log
+    assert "timed out after 1s" in timeout_log
 
 
 def test_run_orchestration_applies_provider_override_env_from_config(tmp_path, monkeypatch):

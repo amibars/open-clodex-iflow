@@ -80,6 +80,18 @@ def default_session_dir(trace_id: str) -> Path:
     return Path.cwd() / ".open-clodex-iflow" / trace_id
 
 
+def reserve_trace_safe_default_session_dir(trace_id: str) -> Path:
+    base_dir = default_session_dir(trace_id)
+    for suffix in range(0, 1000):
+        candidate = base_dir if suffix == 0 else base_dir.parent / f"{base_dir.name}-{suffix:02d}"
+        try:
+            candidate.mkdir(parents=True, exist_ok=False)
+            return candidate
+        except FileExistsError:
+            continue
+    raise RuntimeError(f"could not reserve trace-safe output directory for {trace_id}")
+
+
 def parse_runtime_args(argv: Iterable[str] | None) -> argparse.Namespace:
     raw_argv = sys.argv[1:] if argv is None else list(argv)
     return build_parser().parse_args(normalize_aliases(raw_argv))
@@ -98,7 +110,7 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     if args.command == "orch":
         snapshot = discover_cli_state()
-        output_dir = args.output_dir or default_session_dir(new_trace_id())
+        output_dir = args.output_dir or reserve_trace_safe_default_session_dir(new_trace_id())
         artifact, review = run_orchestration(
             task=args.task,
             runtime_mode=args.mode,

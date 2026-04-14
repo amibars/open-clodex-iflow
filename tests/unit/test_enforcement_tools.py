@@ -1,4 +1,9 @@
 import json
+import os
+import subprocess
+from pathlib import Path
+
+import pytest
 
 from enforcement import deps_rules, secret_scan, tdd_guard
 from scripts.validate_story import validate_story
@@ -90,3 +95,47 @@ def test_tdd_guard_flags_missing_matching_tests_for_declared_rule(tmp_path):
     violations = tdd_guard.collect_violations(root)
 
     assert any("has no matching tests" in violation for violation in violations)
+
+
+def _create_directory_alias(target: Path, alias: Path) -> None:
+    if os.name != "nt":
+        alias.symlink_to(target, target_is_directory=True)
+        return
+
+    try:
+        alias.symlink_to(target, target_is_directory=True)
+        return
+    except OSError:
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(alias), str(target)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            pytest.skip("directory alias creation is unavailable on this platform")
+
+
+def test_tdd_guard_handles_root_alias_paths(tmp_path):
+    real_root = tmp_path / "real-root"
+    alias_root = tmp_path / "alias-root"
+    (real_root / "src" / "open_clodex_iflow").mkdir(parents=True)
+    (real_root / "enforcement").mkdir()
+    (real_root / "scripts").mkdir()
+    (real_root / "src" / "open_clodex_iflow" / "new_module.py").write_text(
+        "x = 1\n",
+        encoding="utf-8",
+    )
+    (real_root / "enforcement" / "tdd_guard.json").write_text(
+        json.dumps({"required": []}),
+        encoding="utf-8",
+    )
+
+    _create_directory_alias(real_root, alias_root)
+
+    violations = tdd_guard.collect_violations(alias_root)
+
+    assert any(
+        violation.replace("\\", "/").endswith("src/open_clodex_iflow/new_module.py")
+        for violation in violations
+    )
