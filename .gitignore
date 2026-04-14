@@ -13,3 +13,4 @@ build/
 *.pyd
 *.log
 logs/
+.tmp/

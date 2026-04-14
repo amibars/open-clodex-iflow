@@ -47,6 +47,21 @@ def command_prefix(binary: str, python_executable: Path | None = None) -> list[s
 
 
 def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
+    artifact_payload = json.dumps(artifact.to_dict(), sort_keys=True)
+    if provider in {"claude", "iflow"}:
+        return (
+            "Return exactly one minified JSON object and nothing else.\n"
+            "Do not use markdown, code fences, explanations, or preambles.\n"
+            "Do not ask follow-up questions.\n"
+            "Do not inspect the workspace or infer extra context from cwd.\n"
+            "Treat the artifact JSON below as the complete context.\n"
+            f'Set "provider" to "{provider}".\n'
+            "Required keys: provider, verdict, summary, blocking_findings, non_blocking_notes, "
+            "tests_to_add, plan_risks, confidence.\n"
+            "Allowed verdict values: proceed, fix_code, fix_plan, block.\n"
+            f"ARTIFACT_JSON={artifact_payload}\n"
+        )
+
     artifact_payload = json.dumps(artifact.to_dict(), indent=2, sort_keys=True)
     return (
         f"You are the {provider} review lane for open-clodex-iflow.\n"
@@ -66,16 +81,35 @@ def build_provider_command(
     prompt: str,
     output_file: Path,
     workdir: Path,
+    timeout_seconds: int,
     python_executable: Path | None = None,
 ) -> list[str]:
     prefix = command_prefix(binary, python_executable)
     if provider == "claude":
         return [*prefix, "-p", prompt]
     if provider == "iflow":
-        return [*prefix, "-p", prompt, "--plan", "-o", str(output_file)]
+        return [
+            *prefix,
+            "-p",
+            prompt,
+            "--max-turns",
+            "1",
+            "--timeout",
+            str(timeout_seconds),
+            "-o",
+            str(output_file),
+        ]
     if provider == "opencode":
         return [*prefix, "run", "--format", "json", "--dir", str(workdir), prompt]
     raise ValueError(f"Unsupported provider for runtime execution: {provider}")
+
+
+def execution_workdir(provider: str, output_dir: Path, project_root: Path) -> Path:
+    if provider == "opencode":
+        return project_root
+    isolated_dir = output_dir / "workspace"
+    isolated_dir.mkdir(parents=True, exist_ok=True)
+    return isolated_dir
 
 
 def stringify_list(value: Any) -> list[str]:
@@ -92,12 +126,23 @@ def is_review_payload(value: Any) -> bool:
 
 def parse_json_candidate(value: str) -> Any | None:
     stripped = value.strip()
+    if stripped.startswith("```") and stripped.endswith("```"):
+        fenced_lines = stripped.splitlines()
+        if len(fenced_lines) >= 3:
+            stripped = "\n".join(fenced_lines[1:-1]).strip()
     if not stripped or stripped[0] not in "{[":
         return None
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
         return None
+
+
+def strip_execution_info(text: str) -> str:
+    marker = "<Execution Info>"
+    if marker not in text:
+        return text
+    return text.split(marker, 1)[0].rstrip()
 
 
 def find_review_payload(value: Any) -> dict[str, Any] | None:
@@ -134,6 +179,10 @@ def parse_review_text(text: str) -> dict[str, Any]:
         raise ValueError("provider output is empty")
 
     candidates: list[Any] = []
+    whole_text_candidate = parse_json_candidate(stripped)
+    if whole_text_candidate is not None:
+        candidates.append(whole_text_candidate)
+
     try:
         candidates.append(json.loads(stripped))
     except json.JSONDecodeError:
@@ -362,6 +411,8 @@ def run_provider_review(
     stderr_path = output_dir / "stderr.txt"
     raw_output_path = output_dir / "raw_output.txt"
     review_path = output_dir / "review.json"
+    project_root = Path.cwd()
+    provider_workdir = execution_workdir(provider, output_dir, project_root)
 
     binary = str(metadata["binary"])
     prompt = build_review_prompt(provider, artifact)
@@ -370,7 +421,8 @@ def run_provider_review(
         binary=binary,
         prompt=prompt,
         output_file=raw_output_path,
-        workdir=Path.cwd(),
+        workdir=project_root,
+        timeout_seconds=timeout_seconds,
         python_executable=python_executable,
     )
     runner = select_runner(runtime_mode)
@@ -384,7 +436,7 @@ def run_provider_review(
         return_code, stdout_text, stderr_text = runner(
             provider,
             command=command,
-            workdir=Path.cwd(),
+            workdir=provider_workdir,
             stdout_path=stdout_path,
             stderr_path=stderr_path,
             timeout_seconds=timeout_seconds,
@@ -418,8 +470,15 @@ def run_provider_review(
         return review
 
     source_text = stdout_text
-    if provider == "iflow" and raw_output_path.exists():
-        source_text = raw_output_path.read_text(encoding="utf-8")
+    iflow_sources: list[tuple[str, str]] = []
+    if provider == "iflow":
+        source_text = strip_execution_info(stdout_text)
+        if source_text.strip():
+            iflow_sources.append(("stdout", source_text))
+        if raw_output_path.exists():
+            file_text = raw_output_path.read_text(encoding="utf-8")
+            if file_text.strip():
+                iflow_sources.append(("file", file_text))
     else:
         raw_output_path.write_text(source_text, encoding="utf-8")
 
@@ -435,7 +494,24 @@ def run_provider_review(
         return review
 
     try:
-        payload = parse_review_text(source_text)
+        if provider == "iflow":
+            last_error: ValueError | None = None
+            payload = None
+            for source_name, candidate_text in iflow_sources:
+                try:
+                    payload = parse_review_text(candidate_text)
+                    if source_name == "stdout":
+                        raw_output_path.write_text(candidate_text, encoding="utf-8")
+                    source_text = candidate_text
+                    break
+                except ValueError as exc:
+                    last_error = exc
+            if payload is None:
+                if last_error is not None:
+                    raise last_error
+                raise ValueError("provider output did not contain a review payload")
+        else:
+            payload = parse_review_text(source_text)
         review = normalize_review(
             provider,
             payload,

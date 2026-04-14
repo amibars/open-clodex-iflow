@@ -26,6 +26,8 @@
 - [x] Add session logging and trace ids
 - [x] Replace preflight-only `/orch` with real provider subprocess execution
 - [x] Add richer tests and CI
+- [ ] Re-run `claude` live compatibility after extra-usage reset and update `docs/PROVIDER_COMPATIBILITY.md`
+- [ ] Investigate `iflow` control-event / empty-payload path after `--plan` removal and document the final contract or blocked reason
 
 ## Guide adaptation deltas
 

@@ -5,6 +5,7 @@ import sys
 import time
 from pathlib import Path
 
+from open_clodex_iflow.contracts import ArtifactPacket
 from open_clodex_iflow.adapters import runtime as runtime_module
 from open_clodex_iflow.orchestration.runtime import run_orchestration
 
@@ -185,6 +186,115 @@ print(json.dumps({{
     "plan_risks": [],
     "confidence": "high"
 }}))
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_cwd_sensitive_provider_script(path: Path, provider: str, forbidden_cwd: str) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+provider = {provider!r}
+forbidden_cwd = Path({forbidden_cwd!r})
+args = sys.argv[1:]
+output_file = None
+for index, value in enumerate(args):
+    if value in ("-o", "--output-file"):
+        output_file = args[index + 1]
+        break
+
+current_cwd = Path.cwd()
+payload = json.dumps({{
+    "provider": provider,
+    "verdict": "block" if current_cwd == forbidden_cwd else "proceed",
+    "summary": str(current_cwd),
+    "blocking_findings": ["provider executed from repo root"] if current_cwd == forbidden_cwd else [],
+    "non_blocking_notes": [],
+    "tests_to_add": [],
+    "plan_risks": [],
+    "confidence": "high",
+}})
+
+if output_file:
+    Path(output_file).write_text(payload, encoding="utf-8")
+else:
+    print(payload)
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_iflow_stdout_provider_script(path: Path, provider: str) -> None:
+    payload = {
+        "provider": provider,
+        "verdict": "proceed",
+        "summary": "stdout payload",
+        "blocking_findings": [],
+        "non_blocking_notes": [],
+        "tests_to_add": [],
+        "plan_risks": [],
+        "confidence": "medium",
+    }
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+output_file = None
+for index, value in enumerate(args):
+    if value in ("-o", "--output-file"):
+        output_file = args[index + 1]
+        break
+
+print(json.dumps({payload!r}))
+print()
+print("<Execution Info>")
+print(json.dumps({{"session-id": "sess-123", "assistantRounds": 1}}, indent=2))
+print("</Execution Info>")
+
+if output_file:
+    Path(output_file).write_text(
+        json.dumps({{"session-id": "sess-123", "assistantRounds": 1}}, indent=2),
+        encoding="utf-8",
+    )
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_iflow_noisy_stdout_file_payload_provider_script(path: Path, provider: str) -> None:
+    payload = {
+        "provider": provider,
+        "verdict": "proceed",
+        "summary": "file payload",
+        "blocking_findings": [],
+        "non_blocking_notes": [],
+        "tests_to_add": [],
+        "plan_risks": [],
+        "confidence": "medium",
+    }
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+output_file = None
+for index, value in enumerate(args):
+    if value in ("-o", "--output-file"):
+        output_file = args[index + 1]
+        break
+
+print("booting iflow runtime")
+if output_file:
+    Path(output_file).write_text(json.dumps({payload!r}), encoding="utf-8")
 """
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
@@ -407,6 +517,152 @@ def test_run_orchestration_logs_dropped_requested_providers(tmp_path):
     assert any("missing" in note for note in review.non_blocking_notes)
     assert any("codex" in note for note in review.non_blocking_notes)
     assert "dropped_requested_providers=missing,codex" in session_log
+
+
+def test_run_orchestration_executes_claude_and_iflow_outside_repo_root(tmp_path):
+    repo_root = str(Path.cwd())
+
+    for provider in ("claude", "iflow"):
+        script_path = tmp_path / f"{provider}.py"
+        write_cwd_sensitive_provider_script(script_path, provider, repo_root)
+        snapshot = {
+            provider: {
+                "available": True,
+                "binary": str(script_path),
+                "state_dirs": [f"C:/fake/{provider}"],
+            }
+        }
+
+        _, review = run_orchestration(
+            task=f"cwd isolation check for {provider}",
+            runtime_mode="headless",
+            provider_snapshot=snapshot,
+            requested_providers=[provider],
+            output_dir=tmp_path / f"{provider}-session",
+            python_executable=Path(sys.executable),
+        )
+
+        provider_review = review.provider_reviews[0]
+        assert review.verdict == "proceed"
+        assert provider_review.review_stage == "runtime"
+        assert provider_review.summary != repo_root
+
+
+def test_parse_review_text_accepts_fenced_json_block():
+    payload = """
+```json
+{
+  "provider": "claude",
+  "verdict": "proceed",
+  "summary": "ok",
+  "blocking_findings": [],
+  "non_blocking_notes": [],
+  "tests_to_add": [],
+  "plan_risks": [],
+  "confidence": "high"
+}
+```
+"""
+
+    parsed = runtime_module.parse_review_text(payload)
+
+    assert parsed["provider"] == "claude"
+    assert parsed["verdict"] == "proceed"
+
+
+def test_run_orchestration_iflow_uses_stdout_payload_instead_of_output_file_metadata(tmp_path):
+    script_path = tmp_path / "iflow.py"
+    write_iflow_stdout_provider_script(script_path, "iflow")
+    snapshot = {
+        "iflow": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/iflow"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="iflow stdout payload contract",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["iflow"],
+        output_dir=tmp_path / "iflow-stdout-session",
+        python_executable=Path(sys.executable),
+    )
+
+    provider_review = review.provider_reviews[0]
+    assert review.verdict == "proceed"
+    assert provider_review.review_stage == "runtime"
+    assert provider_review.summary == "stdout payload"
+    raw_output = Path(provider_review.raw_output_file).read_text(encoding="utf-8")
+    assert "stdout payload" in raw_output
+
+
+def test_run_orchestration_iflow_falls_back_to_output_file_when_stdout_is_noise(tmp_path):
+    script_path = tmp_path / "iflow.py"
+    write_iflow_noisy_stdout_file_payload_provider_script(script_path, "iflow")
+    snapshot = {
+        "iflow": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/iflow"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="iflow noisy stdout fallback",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["iflow"],
+        output_dir=tmp_path / "iflow-noisy-session",
+        python_executable=Path(sys.executable),
+    )
+
+    provider_review = review.provider_reviews[0]
+    assert review.verdict == "proceed"
+    assert provider_review.review_stage == "runtime"
+    assert provider_review.summary == "file payload"
+
+
+def test_build_review_prompt_for_claude_and_iflow_is_explicitly_non_interactive():
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-14T20:00:00Z",
+        mode="orch",
+        task="compatibility smoke",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["claude", "iflow"],
+        provider_snapshot={},
+        next_step="Inspect provider reviews.",
+    )
+
+    for provider in ("claude", "iflow"):
+        prompt = runtime_module.build_review_prompt(provider, artifact)
+        assert "Do not ask follow-up questions" in prompt
+        assert "Treat the artifact JSON below as the complete context" in prompt
+        assert "Return exactly one minified JSON object" in prompt
+        assert f'Set "provider" to "{provider}"' in prompt
+        assert "review lane" not in prompt
+
+
+def test_build_provider_command_for_iflow_limits_turns_and_timeout(tmp_path):
+    command = runtime_module.build_provider_command(
+        "iflow",
+        binary="iflow",
+        prompt="compatibility",
+        output_file=tmp_path / "raw.txt",
+        workdir=tmp_path,
+        timeout_seconds=45,
+    )
+
+    assert "--max-turns" in command
+    assert command[command.index("--max-turns") + 1] == "1"
+    assert "--timeout" in command
+    assert command[command.index("--timeout") + 1] == "45"
+    assert "--plan" not in command
 
 
 def test_run_orchestration_rejects_nested_incidental_verdict_payload(tmp_path):

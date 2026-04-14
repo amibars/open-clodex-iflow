@@ -20,6 +20,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 
 Live provider status is tracked in `docs/PROVIDER_COMPATIBILITY.md`.
 Guide adaptation traceability and source-of-truth coverage are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
+`docs/PROVIDER_COMPATIBILITY.md` tracks the latest documented live evidence per provider, including blocked or synthetic-failure snapshots when no successful review completed.
 
 ## Install for local development
 
@@ -35,6 +36,8 @@ open-clodex-iflow solo "Summarize the current task"
 open-clodex-iflow orch "Review repository readiness" --providers opencode --mode headless
 open-clodex-iflow scaffold C:\Projects\my-new-workspace
 ```
+
+The quick `orch` example uses `opencode` intentionally. Before treating `claude` or `iflow` as success-verified on your machine, check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot and blocked reasons.
 
 ## Required repo docs before runtime expansion
 
@@ -69,7 +72,7 @@ open-clodex-iflow scaffold C:\Projects\my-new-workspace
 
 This repository is a working sequential v1 orchestrator baseline.
 The runtime path for `/orch` is implemented for runnable providers (`claude`, `iflow`, `opencode`) and no longer stops at preflight-only orchestration.
-Live provider reliability is still environment-dependent and must be confirmed per machine/session; adapter support in code is not the same as guaranteed live success.
+Adapter support in code is not the same as guaranteed live success. The current documented live evidence is not equal across providers: `opencode` has a documented successful smoke on this machine, while `claude` is currently blocked by provider quota and `iflow` still lacks a documented successful end-to-end review in the latest snapshot.
 See `docs/PROVIDER_COMPATIBILITY.md` for the latest documented smoke snapshot and interpretation rules.
 
 ## Guide adaptation status
