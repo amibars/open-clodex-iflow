@@ -55,8 +55,8 @@
 
 - `make check`
 - CI workflow enforces equivalent checks:
-- Unix runners: `make check`
-- Windows runners: explicit gate steps (`ruff`, enforcement scripts, unit/integration tests, secret scan) plus standalone skeleton harness
+- Windows runners are the primary product-truth gate: installed console-script smoke plus `make check`
+- Ubuntu runners are a secondary cross-platform guardrail: `ruff`, enforcement scripts, unit/integration tests, secret scan, and standalone skeleton harness
 
 ### Human gate
 
@@ -75,4 +75,4 @@
 - story validator green
 - standalone skeleton tester green
 - `pre-commit` config exists and locks in the minimum critical enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`)
-- `.github/workflows/ci.yml` is not weaker than the local full gate contract
+- `.github/workflows/ci.yml` is not weaker than the local full gate contract and makes the role split explicit: Windows is primary product truth, Ubuntu is secondary guardrail

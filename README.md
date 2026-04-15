@@ -83,3 +83,4 @@ Mapping decisions and explicit adaptation deltas are tracked in `docs/GUIDE_TRAC
 
 Pre-commit hooks run a minimal local guardrail (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`).
 This pre-commit layer is intentionally narrower than the full quality gate; comprehensive verification is `make check` plus CI.
+CI is split intentionally: `windows-latest` is the primary product-truth lane, while `ubuntu-latest` is a secondary Python/enforcement guardrail rather than a claim of Linux runtime parity.
