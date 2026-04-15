@@ -733,6 +733,18 @@ def test_provider_runtime_env_for_iflow_uses_state_dir_parent():
     assert env["HOMEPATH"] == "\\Users\\karte"
 
 
+def test_provider_runtime_env_for_iflow_preserves_posix_state_dir_parent():
+    env = runtime_module.provider_runtime_env(
+        "iflow",
+        {"state_dirs": ["/home/karte/.iflow"]},
+    )
+
+    assert env["HOME"] == "/home/karte"
+    assert env["USERPROFILE"] == "/home/karte"
+    assert env["HOMEDRIVE"] == ""
+    assert env["HOMEPATH"] == "/home/karte"
+
+
 def test_run_orchestration_rejects_nested_incidental_verdict_payload(tmp_path):
     script_path = tmp_path / "opencode.py"
     write_nested_payload_provider_script(script_path, "opencode")

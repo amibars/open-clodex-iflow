@@ -6,7 +6,7 @@ import subprocess
 import sys
 import threading
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from open_clodex_iflow.contracts import ArtifactPacket, ProviderReview, write_json
@@ -129,7 +129,11 @@ def provider_runtime_env(provider: str, metadata: dict[str, object]) -> dict[str
         return {}
 
     for candidate in state_dirs:
-        state_dir = Path(str(candidate))
+        state_dir_text = str(candidate)
+        if ":" in state_dir_text[:3] or "\\" in state_dir_text:
+            state_dir = PureWindowsPath(state_dir_text)
+        else:
+            state_dir = PurePosixPath(state_dir_text)
         if state_dir.name.lower() != ".iflow":
             continue
         home_dir = state_dir.parent
