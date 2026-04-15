@@ -598,7 +598,7 @@ def test_run_orchestration_iflow_uses_stdout_payload_instead_of_output_file_meta
     assert "stdout payload" in raw_output
 
 
-def test_run_orchestration_iflow_falls_back_to_output_file_when_stdout_is_noise(tmp_path):
+def test_run_orchestration_iflow_blocks_when_stdout_is_noise_without_output_file_fallback(tmp_path):
     script_path = tmp_path / "iflow.py"
     write_iflow_noisy_stdout_file_payload_provider_script(script_path, "iflow")
     snapshot = {
@@ -619,9 +619,9 @@ def test_run_orchestration_iflow_falls_back_to_output_file_when_stdout_is_noise(
     )
 
     provider_review = review.provider_reviews[0]
-    assert review.verdict == "proceed"
-    assert provider_review.review_stage == "runtime"
-    assert provider_review.summary == "file payload"
+    assert review.verdict == "block"
+    assert provider_review.review_stage == "synthetic-failure"
+    assert "review payload" in provider_review.blocking_findings[0]
 
 
 def test_build_review_prompt_for_claude_and_iflow_is_explicitly_non_interactive():
@@ -662,7 +662,23 @@ def test_build_provider_command_for_iflow_limits_turns_and_timeout(tmp_path):
     assert command[command.index("--max-turns") + 1] == "1"
     assert "--timeout" in command
     assert command[command.index("--timeout") + 1] == "45"
+    assert "--stream" in command
+    assert command[command.index("--stream") + 1] == "false"
     assert "--plan" not in command
+    assert "-o" not in command
+    assert "--output-file" not in command
+
+
+def test_provider_runtime_env_for_iflow_uses_state_dir_parent():
+    env = runtime_module.provider_runtime_env(
+        "iflow",
+        {"state_dirs": ["C:/Users/karte/.iflow"]},
+    )
+
+    assert env["HOME"] == "C:\\Users\\karte"
+    assert env["USERPROFILE"] == "C:\\Users\\karte"
+    assert env["HOMEDRIVE"] == "C:"
+    assert env["HOMEPATH"] == "\\Users\\karte"
 
 
 def test_run_orchestration_rejects_nested_incidental_verdict_payload(tmp_path):

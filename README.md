@@ -72,7 +72,7 @@ The quick `orch` example uses `opencode` intentionally. Before treating `claude`
 
 This repository is a working sequential v1 orchestrator baseline.
 The runtime path for `/orch` is implemented for runnable providers (`claude`, `iflow`, `opencode`) and no longer stops at preflight-only orchestration.
-Adapter support in code is not the same as guaranteed live success. The current documented live evidence is not equal across providers: `opencode` has a documented successful smoke on this machine, while `claude` is currently blocked by provider quota and `iflow` still lacks a documented successful end-to-end review in the latest snapshot.
+Adapter support in code is not the same as guaranteed live success. The current documented live evidence is not equal across providers: `opencode` has a documented successful smoke on this machine, `claude` is currently blocked by provider quota, and `iflow` now reaches the authenticated provider path but still returns control/status events instead of a normalized review in the latest snapshot.
 See `docs/PROVIDER_COMPATIBILITY.md` for the latest documented smoke snapshot and interpretation rules.
 
 ## Guide adaptation status

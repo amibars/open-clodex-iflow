@@ -1,6 +1,10 @@
 import json
 
-from open_clodex_iflow.adapters.discovery import discover_cli_state, installed_provider_names
+from open_clodex_iflow.adapters.discovery import (
+    discover_cli_state,
+    installed_provider_names,
+    resolve_discovery_home,
+)
 
 
 def test_discover_cli_state_reuses_existing_state_dirs(tmp_path):
@@ -62,3 +66,9 @@ def test_discover_cli_state_redacts_provider_override_config(tmp_path):
         "TEST_PROVIDER_API_KEY",
         "TEST_PROVIDER_BASE_URL",
     ]
+
+
+def test_resolve_discovery_home_unwraps_codex_store_userhome(tmp_path):
+    wrapped_home = tmp_path / ".codex-store-userhome"
+
+    assert resolve_discovery_home(wrapped_home) == tmp_path

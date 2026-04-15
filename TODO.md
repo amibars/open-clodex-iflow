@@ -27,7 +27,7 @@
 - [x] Replace preflight-only `/orch` with real provider subprocess execution
 - [x] Add richer tests and CI
 - [ ] Re-run `claude` live compatibility after extra-usage reset and update `docs/PROVIDER_COMPATIBILITY.md`
-- [ ] Investigate `iflow` control-event / empty-payload path after `--plan` removal and document the final contract or blocked reason
+- [ ] Investigate the live `iflow` review-prompt contract after auth/discovery fixes; current `orch` path reaches the provider but still returns control/status payloads like `{"status":"ready"}` plus shutdown-timeout noise instead of review JSON
 
 ## Guide adaptation deltas
 

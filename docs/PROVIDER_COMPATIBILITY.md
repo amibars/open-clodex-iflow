@@ -8,15 +8,15 @@
 
 ## Adapter support matrix
 
-| Provider | Adapter in code | Non-interactive surface used now | Last documented live snapshot (2026-04-14) | Notes |
+| Provider | Adapter in code | Non-interactive surface used now | Last documented live snapshot (2026-04-15) | Notes |
 | --- | --- | --- | --- | --- |
 | `claude` | yes | `claude -p` | blocked by provider quota | `claude auth status` confirms reuse-first auth, but live non-interactive review is currently rejected by `rate_limit_event` / `You're out of extra usage` until reset |
-| `iflow` | yes | `iflow -p --max-turns 1 --timeout <n>` | invalid payload observed | runtime no longer uses `--plan`; current live run still returns control/status payloads or empty fenced JSON instead of a valid review, so successful end-to-end review is not documented in this snapshot |
+| `iflow` | yes | `iflow -p --max-turns 1 --timeout <n> --stream false` | blocked by control/status contract | runtime no longer uses `--plan` or `-o`, and discovery now unwraps `.codex-store-userhome` to the real Windows home; current live run still returns control/status payloads like `{"status":"ready"}` plus shutdown timeout instead of a valid review JSON |
 | `opencode` | yes | `opencode run --format json --dir <repo>` | live success documented | current smoke completed with `review_stage=runtime` and `verdict=proceed` on a compatibility artifact snapshot |
 
 ---
 
-## Last documented smoke snapshot (2026-04-14)
+## Last documented smoke snapshot (2026-04-15)
 
 - `opencode`
   - `orch` completed successfully in headless mode.
@@ -27,10 +27,10 @@
   - A direct machine-readable probe with `claude -p --verbose --no-session-persistence --output-format stream-json --include-hook-events ...` produced `rate_limit_event` with `status=rejected`, `rateLimitType=five_hour`, `overageDisabledReason=out_of_credits`.
   - The same probe returned `You're out of extra usage · resets 2am (Europe/Moscow)`, so the current blocked reason is provider quota, not missing auth or a broken adapter path.
 - `iflow`
-  - Runtime command no longer includes `--plan`; that earlier flag combination was confirmed to trigger a different control/ready mode and was removed from the adapter.
-  - A direct no-`--plan` probe can return a non-interactive JSON answer, so the adapter is no longer blocked on the original `--plan` misuse.
-  - The latest full `orch` smoke still did not complete a valid review: the provider emitted only `{"status":"ready", ...}` or fenced `{}` plus stderr diagnostics such as `Error fetching iFlow user info`, and no valid review payload was normalized.
-  - Therefore this snapshot documents failure-path evidence only; a successful live end-to-end `iflow` review is still not documented.
+  - Runtime command now forces `--stream false` and no longer passes `--plan` or `-o/--output-file`; direct minimal non-interactive probes confirm that this is the only currently documented happy-path shape for model output.
+  - Discovery now unwraps `C:\Users\karte\.codex-store-userhome` to the real Windows home before checking provider state dirs, so reuse-first auth no longer points at the sandbox home by mistake.
+  - Browser login is no longer the active blocker. After the discovery/runtime fixes, a real `orch` run reaches the provider but still does not complete a valid review: stdout contains only control/status payloads such as `{"status":"ready"}` and the session ends with execution-info/shutdown-timeout noise, without a review JSON.
+  - Therefore this snapshot still documents failure-path evidence only; the remaining blocker is the live review-prompt/runtime contract, not missing auth.
 
 ---
 

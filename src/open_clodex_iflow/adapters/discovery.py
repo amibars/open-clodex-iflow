@@ -7,6 +7,13 @@ from pathlib import Path
 from typing import Callable, Mapping
 
 
+def resolve_discovery_home(home: Path | None = None) -> Path:
+    base = home or Path.home()
+    if base.name == ".codex-store-userhome":
+        return base.parent
+    return base
+
+
 def readiness_level(binary_found: bool, existing_state_dirs: list[str]) -> str:
     if binary_found and existing_state_dirs:
         return "binary+state"
@@ -58,7 +65,7 @@ def load_provider_override_config(
 
 
 def build_state_dir_map(home: Path | None = None) -> dict[str, list[Path]]:
-    base = home or Path.home()
+    base = resolve_discovery_home(home)
     return {
         "codex": [base / ".codex"],
         "claude": [base / ".claude", base / ".config" / "claude"],

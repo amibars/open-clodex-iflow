@@ -96,8 +96,8 @@ def build_provider_command(
             "1",
             "--timeout",
             str(timeout_seconds),
-            "-o",
-            str(output_file),
+            "--stream",
+            "false",
         ]
     if provider == "opencode":
         return [*prefix, "run", "--format", "json", "--dir", str(workdir), prompt]
@@ -110,6 +110,32 @@ def execution_workdir(provider: str, output_dir: Path, project_root: Path) -> Pa
     isolated_dir = output_dir / "workspace"
     isolated_dir.mkdir(parents=True, exist_ok=True)
     return isolated_dir
+
+
+def provider_runtime_env(provider: str, metadata: dict[str, object]) -> dict[str, str]:
+    if provider != "iflow":
+        return {}
+
+    state_dirs = metadata.get("state_dirs")
+    if not isinstance(state_dirs, list):
+        return {}
+
+    for candidate in state_dirs:
+        state_dir = Path(str(candidate))
+        if state_dir.name.lower() != ".iflow":
+            continue
+        home_dir = state_dir.parent
+        home_text = str(home_dir)
+        home_drive = home_dir.drive
+        home_path = home_text[len(home_drive) :] if home_drive else home_text
+        return {
+            "HOME": home_text,
+            "USERPROFILE": home_text,
+            "HOMEDRIVE": home_drive,
+            "HOMEPATH": home_path,
+        }
+
+    return {}
 
 
 def stringify_list(value: Any) -> list[str]:
@@ -426,7 +452,7 @@ def run_provider_review(
         python_executable=python_executable,
     )
     runner = select_runner(runtime_mode)
-    extra_env = {}
+    extra_env = provider_runtime_env(provider, metadata)
     if provider_override:
         env_map = provider_override.get("env", {})
         if isinstance(env_map, dict):
@@ -470,15 +496,9 @@ def run_provider_review(
         return review
 
     source_text = stdout_text
-    iflow_sources: list[tuple[str, str]] = []
     if provider == "iflow":
         source_text = strip_execution_info(stdout_text)
-        if source_text.strip():
-            iflow_sources.append(("stdout", source_text))
-        if raw_output_path.exists():
-            file_text = raw_output_path.read_text(encoding="utf-8")
-            if file_text.strip():
-                iflow_sources.append(("file", file_text))
+        raw_output_path.write_text(source_text, encoding="utf-8")
     else:
         raw_output_path.write_text(source_text, encoding="utf-8")
 
@@ -495,21 +515,7 @@ def run_provider_review(
 
     try:
         if provider == "iflow":
-            last_error: ValueError | None = None
-            payload = None
-            for source_name, candidate_text in iflow_sources:
-                try:
-                    payload = parse_review_text(candidate_text)
-                    if source_name == "stdout":
-                        raw_output_path.write_text(candidate_text, encoding="utf-8")
-                    source_text = candidate_text
-                    break
-                except ValueError as exc:
-                    last_error = exc
-            if payload is None:
-                if last_error is not None:
-                    raise last_error
-                raise ValueError("provider output did not contain a review payload")
+            payload = parse_review_text(source_text)
         else:
             payload = parse_review_text(source_text)
         review = normalize_review(
