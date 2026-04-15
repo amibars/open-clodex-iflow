@@ -39,6 +39,12 @@ open-clodex-iflow scaffold C:\Projects\my-new-workspace
 
 The quick `orch` example uses `opencode` intentionally because it remains the lowest-friction default lane. `claude` and `iflow` now also have documented successful headless smokes on this machine, but both are sensitive to their current provider-specific runtime contracts. Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treating any provider as success-verified on a different machine.
 
+## Platform support
+
+- Primary product truth: Windows
+- Secondary engineering guardrail: Ubuntu CI for Python/enforcement drift detection
+- This repo does not currently claim Linux desktop runtime parity for visible/windowed orchestration
+
 ## Required repo docs before runtime expansion
 
 - `docs/START_HERE.md`
