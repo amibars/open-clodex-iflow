@@ -11,7 +11,7 @@
 | Provider | Adapter in code | Non-interactive surface used now | Last documented live snapshot (2026-04-15) | Notes |
 | --- | --- | --- | --- | --- |
 | `claude` | yes | `claude -p` | blocked by provider quota | `claude auth status` confirms reuse-first auth, but live non-interactive review is currently rejected by `rate_limit_event` / `You're out of extra usage` until reset |
-| `iflow` | yes | `iflow -p --max-turns 1 --timeout <n> --stream false` | blocked by control/status contract | runtime no longer uses `--plan` or `-o`, and discovery now unwraps `.codex-store-userhome` to the real Windows home; current live run still returns control/status payloads like `{"status":"ready"}` plus shutdown timeout instead of a valid review JSON |
+| `iflow` | yes | `iflow -p --max-turns 1 --timeout <n> --stream false` | live success documented | runtime now uses an `iflow`-specific compact review prompt, does not pass `--plan` or `-o`, and live headless `/orch` produces a normalized provider review |
 | `opencode` | yes | `opencode run --format json --dir <repo>` | live success documented | current smoke completed with `review_stage=runtime` and `verdict=proceed` on a compatibility artifact snapshot |
 
 ---
@@ -27,10 +27,10 @@
   - A direct machine-readable probe with `claude -p --verbose --no-session-persistence --output-format stream-json --include-hook-events ...` produced `rate_limit_event` with `status=rejected`, `rateLimitType=five_hour`, `overageDisabledReason=out_of_credits`.
   - The same probe returned `You're out of extra usage · resets 2am (Europe/Moscow)`, so the current blocked reason is provider quota, not missing auth or a broken adapter path.
 - `iflow`
-  - Runtime command now forces `--stream false` and no longer passes `--plan` or `-o/--output-file`; direct minimal non-interactive probes confirm that this is the only currently documented happy-path shape for model output.
-  - Discovery now unwraps `C:\Users\karte\.codex-store-userhome` to the real Windows home before checking provider state dirs, so reuse-first auth no longer points at the sandbox home by mistake.
-  - Browser login is no longer the active blocker. After the discovery/runtime fixes, a real `orch` run reaches the provider but still does not complete a valid review: stdout contains only control/status payloads such as `{"status":"ready"}` and the session ends with execution-info/shutdown-timeout noise, without a review JSON.
-  - Therefore this snapshot still documents failure-path evidence only; the remaining blocker is the live review-prompt/runtime contract, not missing auth.
+  - Runtime command now forces `--stream false` and no longer passes `--plan` or `-o/--output-file`; direct probes confirm that `-o` is an execution-metadata channel, not a stable review-payload channel.
+  - Browser login is no longer the active blocker. A direct minimal non-interactive probe returns model text, and a real headless `orch` run now completes with `review_stage=runtime` and `verdict=proceed`.
+  - The remaining caveat is contract-specific, not auth-specific: `iflow` still reacts poorly to the older verbose multi-line prompt shape and to `-o`. The documented happy path is the compact provider-specific prompt plus `--stream false`.
+  - Latest successful local smoke: `C:\Projects\open-clodex-iflow\.tmp\iflow-compat-20260415-d`, with valid `review.json`, `raw_output.txt`, and `consolidated_review.json`.
 
 ---
 
@@ -40,7 +40,8 @@
 - **Live success** means a real local smoke completed and produced a provider review with `review_stage=runtime`.
 - **Failure-path evidence** means the adapter reached a real provider execution path and produced checkable blocking artifacts, but did not complete a successful review.
 - `doctor` readiness (`missing`, `binary-only`, `binary+state`) is a discovery signal only. It is not proof that a provider can complete a real review right now.
-- For `claude` and `iflow`, this snapshot does **not** document a successful live review completion. It documents explicit blocked reasons and synthetic-failure handling.
+- For `claude`, this snapshot does **not** document a successful live review completion. It documents an explicit blocked reason from the provider.
+- For `iflow`, this snapshot documents a successful live review completion on this machine, but the success currently depends on the compact `iflow` prompt contract and `--stream false`.
 - Presence of `review.json`, `session.log`, `stdout.txt`, or other artifacts alone is not evidence of provider success; success requires a normalized provider review with `review_stage=runtime`.
 
 ## How to self-check a provider on this machine

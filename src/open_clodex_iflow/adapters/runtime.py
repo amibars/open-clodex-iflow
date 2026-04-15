@@ -48,7 +48,7 @@ def command_prefix(binary: str, python_executable: Path | None = None) -> list[s
 
 def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
     artifact_payload = json.dumps(artifact.to_dict(), sort_keys=True)
-    if provider in {"claude", "iflow"}:
+    if provider == "claude":
         return (
             "Return exactly one minified JSON object and nothing else.\n"
             "Do not use markdown, code fences, explanations, or preambles.\n"
@@ -60,6 +60,17 @@ def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
             "tests_to_add, plan_risks, confidence.\n"
             "Allowed verdict values: proceed, fix_code, fix_plan, block.\n"
             f"ARTIFACT_JSON={artifact_payload}\n"
+        )
+    if provider == "iflow":
+        compact_payload = json.dumps(artifact.to_dict(), separators=(",", ":"), sort_keys=True)
+        return (
+            "Review this artifact and reply with exactly one minified JSON object. "
+            "Use keys provider, verdict, summary, blocking_findings, non_blocking_notes, "
+            "tests_to_add, plan_risks, confidence. "
+            "provider must be iflow. "
+            "verdict must be one of proceed, fix_code, fix_plan, block. "
+            "confidence must be one of low, medium, high. "
+            f"Artifact: {compact_payload}"
         )
 
     artifact_payload = json.dumps(artifact.to_dict(), indent=2, sort_keys=True)

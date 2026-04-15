@@ -624,7 +624,7 @@ def test_run_orchestration_iflow_blocks_when_stdout_is_noise_without_output_file
     assert "review payload" in provider_review.blocking_findings[0]
 
 
-def test_build_review_prompt_for_claude_and_iflow_is_explicitly_non_interactive():
+def test_build_review_prompt_for_claude_is_explicitly_non_interactive():
     artifact = ArtifactPacket(
         trace_id="trace-test",
         generated_at="2026-04-14T20:00:00Z",
@@ -639,13 +639,50 @@ def test_build_review_prompt_for_claude_and_iflow_is_explicitly_non_interactive(
         next_step="Inspect provider reviews.",
     )
 
-    for provider in ("claude", "iflow"):
-        prompt = runtime_module.build_review_prompt(provider, artifact)
-        assert "Do not ask follow-up questions" in prompt
-        assert "Treat the artifact JSON below as the complete context" in prompt
-        assert "Return exactly one minified JSON object" in prompt
-        assert f'Set "provider" to "{provider}"' in prompt
-        assert "review lane" not in prompt
+    prompt = runtime_module.build_review_prompt("claude", artifact)
+    assert "Do not ask follow-up questions" in prompt
+    assert "Treat the artifact JSON below as the complete context" in prompt
+    assert "Return exactly one minified JSON object" in prompt
+    assert 'Set "provider" to "claude"' in prompt
+    assert "review lane" not in prompt
+    assert "ARTIFACT_JSON=" in prompt
+
+
+def test_build_review_prompt_for_iflow_uses_compact_artifact_summary():
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-14T20:00:00Z",
+        mode="orch",
+        task="compatibility smoke",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["claude", "iflow"],
+        provider_snapshot={
+            "iflow": {
+                "available": True,
+                "binary": "iflow",
+                "state_dirs": ["C:/fake/iflow"],
+            }
+        },
+        notes=["System CLI discovery was captured before execution."],
+        next_step="Inspect provider reviews.",
+    )
+
+    prompt = runtime_module.build_review_prompt("iflow", artifact)
+
+    assert prompt.startswith("Review this artifact and reply with exactly one minified JSON object.")
+    assert "provider must be iflow" in prompt
+    assert "verdict must be one of proceed, fix_code, fix_plan, block" in prompt
+    assert "confidence must be one of low, medium, high" in prompt
+    assert "ARTIFACT_JSON=" not in prompt
+    assert "Do not ask follow-up questions" not in prompt
+    assert "\n" not in prompt
+    assert '"provider_snapshot":{"iflow":{"available":true' in prompt
+    assert '"traceability_audit_path":"docs/GUIDE_TRACEABILITY_AUDIT.md"' in prompt
+    assert '"task":"compatibility smoke"' in prompt
+    assert '"planned_providers":["claude","iflow"]' in prompt
 
 
 def test_build_provider_command_for_iflow_limits_turns_and_timeout(tmp_path):
