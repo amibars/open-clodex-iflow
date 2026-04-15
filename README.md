@@ -37,7 +37,7 @@ open-clodex-iflow orch "Review repository readiness" --providers opencode --mode
 open-clodex-iflow scaffold C:\Projects\my-new-workspace
 ```
 
-The quick `orch` example uses `opencode` intentionally because it remains the lowest-friction default lane. `iflow` now has a documented successful headless smoke on this machine; `claude` is still quota-blocked. Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot and blocked reasons before treating any provider as success-verified on a different machine.
+The quick `orch` example uses `opencode` intentionally because it remains the lowest-friction default lane. `claude` and `iflow` now also have documented successful headless smokes on this machine, but both are sensitive to their current provider-specific runtime contracts. Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treating any provider as success-verified on a different machine.
 
 ## Required repo docs before runtime expansion
 
@@ -72,7 +72,7 @@ The quick `orch` example uses `opencode` intentionally because it remains the lo
 
 This repository is a working sequential v1 orchestrator baseline.
 The runtime path for `/orch` is implemented for runnable providers (`claude`, `iflow`, `opencode`) and no longer stops at preflight-only orchestration.
-Adapter support in code is not the same as guaranteed live success. The current documented live evidence is not equal across providers: `opencode` and `iflow` have documented successful smokes on this machine, while `claude` is currently blocked by provider quota.
+Adapter support in code is not the same as guaranteed live success. The current documented live evidence is now success-documented for all three runnable providers on this machine: `opencode`, `iflow`, and `claude`.
 See `docs/PROVIDER_COMPATIBILITY.md` for the latest documented smoke snapshot and interpretation rules.
 
 ## Guide adaptation status

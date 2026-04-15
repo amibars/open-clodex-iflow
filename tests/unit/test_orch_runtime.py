@@ -640,12 +640,14 @@ def test_build_review_prompt_for_claude_is_explicitly_non_interactive():
     )
 
     prompt = runtime_module.build_review_prompt("claude", artifact)
-    assert "Do not ask follow-up questions" in prompt
-    assert "Treat the artifact JSON below as the complete context" in prompt
-    assert "Return exactly one minified JSON object" in prompt
-    assert 'Set "provider" to "claude"' in prompt
-    assert "review lane" not in prompt
-    assert "ARTIFACT_JSON=" in prompt
+    assert prompt.startswith("Return exactly one minified JSON object with keys provider, verdict, summary, blocking_findings, non_blocking_notes, tests_to_add, plan_risks, confidence.")
+    assert "provider must be claude" in prompt
+    assert "verdict must be one of proceed, fix_code, fix_plan, block" in prompt
+    assert "confidence must be one of low, medium, high" in prompt
+    assert "Do not ask follow-up questions" not in prompt
+    assert "ARTIFACT_JSON=" not in prompt
+    assert "\n" not in prompt
+    assert '"planned_providers":["claude","iflow"]' in prompt
 
 
 def test_build_review_prompt_for_iflow_uses_compact_artifact_summary():
@@ -704,6 +706,19 @@ def test_build_provider_command_for_iflow_limits_turns_and_timeout(tmp_path):
     assert "--plan" not in command
     assert "-o" not in command
     assert "--output-file" not in command
+
+
+def test_build_provider_command_for_claude_disables_session_persistence(tmp_path):
+    command = runtime_module.build_provider_command(
+        "claude",
+        binary="claude",
+        prompt="compatibility",
+        output_file=tmp_path / "raw.txt",
+        workdir=tmp_path,
+        timeout_seconds=45,
+    )
+
+    assert command == ["claude", "-p", "compatibility", "--no-session-persistence"]
 
 
 def test_provider_runtime_env_for_iflow_uses_state_dir_parent():

@@ -49,17 +49,14 @@ def command_prefix(binary: str, python_executable: Path | None = None) -> list[s
 def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
     artifact_payload = json.dumps(artifact.to_dict(), sort_keys=True)
     if provider == "claude":
+        compact_payload = json.dumps(artifact.to_dict(), separators=(",", ":"), sort_keys=True)
         return (
-            "Return exactly one minified JSON object and nothing else.\n"
-            "Do not use markdown, code fences, explanations, or preambles.\n"
-            "Do not ask follow-up questions.\n"
-            "Do not inspect the workspace or infer extra context from cwd.\n"
-            "Treat the artifact JSON below as the complete context.\n"
-            f'Set "provider" to "{provider}".\n'
-            "Required keys: provider, verdict, summary, blocking_findings, non_blocking_notes, "
-            "tests_to_add, plan_risks, confidence.\n"
-            "Allowed verdict values: proceed, fix_code, fix_plan, block.\n"
-            f"ARTIFACT_JSON={artifact_payload}\n"
+            "Return exactly one minified JSON object with keys provider, verdict, summary, "
+            "blocking_findings, non_blocking_notes, tests_to_add, plan_risks, confidence. "
+            "provider must be claude. "
+            "verdict must be one of proceed, fix_code, fix_plan, block. "
+            "confidence must be one of low, medium, high. "
+            f"Artifact: {compact_payload}"
         )
     if provider == "iflow":
         compact_payload = json.dumps(artifact.to_dict(), separators=(",", ":"), sort_keys=True)
@@ -97,7 +94,7 @@ def build_provider_command(
 ) -> list[str]:
     prefix = command_prefix(binary, python_executable)
     if provider == "claude":
-        return [*prefix, "-p", prompt]
+        return [*prefix, "-p", prompt, "--no-session-persistence"]
     if provider == "iflow":
         return [
             *prefix,

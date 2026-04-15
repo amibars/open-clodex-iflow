@@ -26,7 +26,7 @@
 - [x] Add session logging and trace ids
 - [x] Replace preflight-only `/orch` with real provider subprocess execution
 - [x] Add richer tests and CI
-- [ ] Re-run `claude` live compatibility after extra-usage reset and update `docs/PROVIDER_COMPATIBILITY.md`
+- [x] Re-run `claude` live compatibility after extra-usage reset and update `docs/PROVIDER_COMPATIBILITY.md`; runtime now uses a compact `claude` prompt plus `--no-session-persistence` and the latest headless smoke completed with `review_stage=runtime`
 - [x] Investigate the live `iflow` review-prompt contract after auth/discovery fixes; runtime now uses a compact `iflow` prompt plus `--stream false` and the latest headless smoke completed with `review_stage=runtime`
 
 ## Guide adaptation deltas
