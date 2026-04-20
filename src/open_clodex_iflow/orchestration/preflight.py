@@ -22,6 +22,7 @@ def build_artifact_packet(
     task: str,
     provider_snapshot: dict[str, dict[str, object]],
     planned_providers: list[str] | None = None,
+    planned_lanes: list[str] | None = None,
     runtime_mode: str | None = None,
     packet_stage: str | None = None,
     next_step: str | None = None,
@@ -37,6 +38,7 @@ def build_artifact_packet(
             for name, metadata in provider_snapshot.items()
             if bool(metadata.get("available"))
         )
+    effective_lanes = sorted(planned_lanes or [])
     notes = [
         "System CLI discovery was captured before execution.",
         "Packet contains structured fields only; no raw transcript handoff.",
@@ -69,6 +71,7 @@ def build_artifact_packet(
         privacy_boundary="codex-only" if mode == "solo" else "structured-packet-only",
         fan_out_requested=mode == "orch",
         planned_providers=effective_providers,
+        planned_lanes=effective_lanes,
         provider_snapshot=provider_snapshot,
         notes=notes,
         next_step=resolved_next_step,

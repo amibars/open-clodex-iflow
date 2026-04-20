@@ -8,6 +8,11 @@ from typing import Iterable
 
 from open_clodex_iflow.adapters.discovery import discover_cli_state
 from open_clodex_iflow.contracts import new_trace_id, write_json
+from open_clodex_iflow.lanes import (
+    DEFAULT_LANE_SET_ID,
+    render_lane_catalog,
+    supported_lane_set_ids,
+)
 from open_clodex_iflow.orchestration.preflight import build_artifact_packet
 from open_clodex_iflow.orchestration.runtime import run_orchestration
 from open_clodex_iflow.scaffold.bootstrap import scaffold_workspace
@@ -22,6 +27,7 @@ def normalize_aliases(argv: Iterable[str]) -> list[str]:
         "/solo": "solo",
         "/orch": "orch",
         "/orchester": "orch",
+        "/lanes": "lanes",
     }
     if normalized[0] in aliases:
         normalized[0] = aliases[normalized[0]]
@@ -53,9 +59,19 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Directory where artifact.json and consolidated_review.json should be written",
     )
-    orch.add_argument(
+    provider_selection = orch.add_mutually_exclusive_group()
+    provider_selection.add_argument(
         "--providers",
         help="Comma-separated provider list to execute (defaults to all runnable adapters)",
+    )
+    provider_selection.add_argument(
+        "--lanes",
+        help="Comma-separated lane preset IDs to execute",
+    )
+    orch.add_argument(
+        "--lane-set",
+        choices=supported_lane_set_ids(),
+        help="Named lane set to execute when --providers/--lanes are not supplied",
     )
     orch.add_argument(
         "--timeout-seconds",
@@ -65,6 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers.add_parser("doctor", help="Inspect installed CLIs and known local state")
+    subparsers.add_parser("lanes", help="List available lane presets and CLI toggles")
     scaffold = subparsers.add_parser("scaffold", help="Bootstrap an Iron Dome starter workspace")
     scaffold.add_argument("destination", type=Path, help="Target directory for the new workspace")
     scaffold.add_argument(
@@ -121,6 +138,13 @@ def main(argv: Iterable[str] | None = None) -> int:
                 if provider.strip()
             ]
             or None,
+            requested_lanes=[
+                lane.strip()
+                for lane in (args.lanes or "").split(",")
+                if lane.strip()
+            ]
+            or None,
+            lane_set=None if args.providers else (args.lane_set or DEFAULT_LANE_SET_ID),
             timeout_seconds=args.timeout_seconds,
             output_dir=output_dir,
         )
@@ -134,6 +158,10 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     if args.command == "doctor":
         print(json.dumps(discover_cli_state(), indent=2, sort_keys=True))
+        return 0
+
+    if args.command == "lanes":
+        print(render_lane_catalog())
         return 0
 
     if args.command == "scaffold":

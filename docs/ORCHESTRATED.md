@@ -21,6 +21,8 @@
 - writes per-provider `review.json`, raw outputs, and one consolidated review
 - default runtime mode: `windowed`
 - optional runtime mode: `headless`
+- default lane set: `default-planners`
+- explicit lane inspection: `lanes`
 
 ---
 
@@ -41,12 +43,13 @@
 
 1. Build artifact packet from current task
 2. Discover providers and reusable auth/state
-3. Select runtime mode (`windowed` default)
-4. Filter down to runnable providers with explicit adapter support
-5. Execute providers sequentially
-6. Collect per-provider review outputs
-7. Aggregate into consolidated review
-8. Hand result back to Codex
+3. Resolve lane set or explicit lanes
+4. Select runtime mode (`windowed` default)
+5. Filter down to runnable providers with explicit adapter support
+6. Execute lanes sequentially
+7. Collect per-provider review outputs
+8. Aggregate into consolidated review
+9. Hand result back to Codex
 
 ---
 
@@ -64,10 +67,18 @@
 - local state/auth reuse first
 - custom API/custom URL only as explicit override
 - explicit override config is loaded from `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
+- default planner lane pack is:
+  - `iflow-glm5-plan-thinking`
+  - `iflow-qwen3coder-plan`
+  - `iflow-kimi-k25-plan-thinking`
+  - `opencode-minimax-plan-thinking`
+- explicit write-capable lane is `opencode-minimax-build-thinking`
 - no raw chat history handoff; only structured packets
 - no silent downgrade from `/orch` to `/solo`
 - no hidden reviewer with write authority over repo truth
 - `windowed` means operator-visible execution; `headless` means capture-only execution
+- `iflow` lane presets request `--plan`; `--thinking` is best-effort because `iflow` only enables it when the selected model supports it
+- legacy `--providers` remains available as a compatibility path when operator wants raw provider routing instead of lane presets
 
 ---
 
@@ -75,7 +86,7 @@
 
 - `doctor` and orchestration preflight already reuse system discovery and known state dirs
 - `/solo` is a real packet-producing command and does not emit external packets
-- `/orch` now executes runnable providers sequentially and writes normalized provider reviews
+- `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run
 - current live compatibility is versioned in `docs/PROVIDER_COMPATIBILITY.md`
 

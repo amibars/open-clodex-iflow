@@ -7,6 +7,7 @@ from pathlib import Path
 
 from open_clodex_iflow.contracts import ArtifactPacket
 from open_clodex_iflow.adapters import runtime as runtime_module
+from open_clodex_iflow.lanes import list_lane_presets
 from open_clodex_iflow.orchestration.runtime import run_orchestration
 
 
@@ -66,6 +67,30 @@ import sys
 import time
 
 sys.stdout.write("partial")
+sys.stdout.flush()
+time.sleep({seconds})
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_valid_payload_then_sleep_provider_script(path: Path, provider: str, *, seconds: int) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+import time
+
+print(json.dumps({{
+    "provider": "{provider}",
+    "verdict": "proceed",
+    "summary": "{provider} emitted a review before timing out",
+    "blocking_findings": [],
+    "non_blocking_notes": [],
+    "tests_to_add": [],
+    "plan_risks": [],
+    "confidence": "high"
+}}))
 sys.stdout.flush()
 time.sleep({seconds})
 """
@@ -336,6 +361,7 @@ def test_run_orchestration_emits_provider_reviews_and_aggregates_verdict(tmp_pat
         task="audit repository runtime",
         runtime_mode="headless",
         provider_snapshot=snapshot,
+        requested_providers=["claude", "iflow", "opencode"],
         output_dir=tmp_path / "session",
         python_executable=Path(sys.executable),
     )
@@ -348,6 +374,35 @@ def test_run_orchestration_emits_provider_reviews_and_aggregates_verdict(tmp_pat
     assert (tmp_path / "session" / "providers" / "claude" / "review.json").exists()
     assert (tmp_path / "session" / "providers" / "iflow" / "review.json").exists()
     assert (tmp_path / "session" / "session.log").exists()
+
+
+def test_run_orchestration_defaults_to_lane_aware_planner_pack(tmp_path):
+    snapshot = runtime_snapshot(
+        tmp_path,
+        {
+            "iflow": {"verdict": "proceed"},
+            "opencode": {"verdict": "proceed"},
+        },
+    )
+
+    artifact, review = run_orchestration(
+        task="default planner lanes",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert artifact.planned_providers == ["iflow", "opencode"]
+    assert artifact.planned_lanes == [
+        "iflow-glm5-plan-thinking",
+        "iflow-kimi-k25-plan-thinking",
+        "iflow-qwen3coder-plan",
+        "opencode-minimax-plan-thinking",
+    ]
+    assert len(review.provider_reviews) == 4
+    assert (tmp_path / "session" / "providers" / "iflow-glm5-plan-thinking" / "review.json").exists()
+    assert (tmp_path / "session" / "providers" / "opencode-minimax-plan-thinking" / "review.json").exists()
 
 
 def test_select_runner_returns_expected_execution_function():
@@ -414,6 +469,7 @@ def test_run_orchestration_creates_synthetic_block_on_invalid_provider_output(tm
         task="audit repository runtime",
         runtime_mode="headless",
         provider_snapshot=snapshot,
+        requested_providers=["claude", "iflow"],
         output_dir=tmp_path / "session",
         python_executable=Path(sys.executable),
     )
@@ -570,6 +626,29 @@ def test_parse_review_text_accepts_fenced_json_block():
     assert parsed["verdict"] == "proceed"
 
 
+def test_parse_review_text_accepts_warning_prefix_before_fenced_json_block():
+    payload = """
+Model Qwen3-Coder-Plus does not support thinking mode
+```json
+{
+  "provider": "iflow",
+  "verdict": "proceed",
+  "summary": "ok",
+  "blocking_findings": [],
+  "non_blocking_notes": [],
+  "tests_to_add": [],
+  "plan_risks": [],
+  "confidence": "high"
+}
+```
+"""
+
+    parsed = runtime_module.parse_review_text(payload)
+
+    assert parsed["provider"] == "iflow"
+    assert parsed["verdict"] == "proceed"
+
+
 def test_run_orchestration_iflow_uses_stdout_payload_instead_of_output_file_metadata(tmp_path):
     script_path = tmp_path / "iflow.py"
     write_iflow_stdout_provider_script(script_path, "iflow")
@@ -688,6 +767,7 @@ def test_build_review_prompt_for_iflow_uses_compact_artifact_summary():
 
 
 def test_build_provider_command_for_iflow_limits_turns_and_timeout(tmp_path):
+    lane = list_lane_presets()["iflow-glm5-plan-thinking"]
     command = runtime_module.build_provider_command(
         "iflow",
         binary="iflow",
@@ -695,15 +775,19 @@ def test_build_provider_command_for_iflow_limits_turns_and_timeout(tmp_path):
         output_file=tmp_path / "raw.txt",
         workdir=tmp_path,
         timeout_seconds=45,
+        lane=lane,
     )
 
+    assert "-m" in command
+    assert command[command.index("-m") + 1] == "GLM-5"
     assert "--max-turns" in command
     assert command[command.index("--max-turns") + 1] == "1"
     assert "--timeout" in command
     assert command[command.index("--timeout") + 1] == "45"
     assert "--stream" in command
     assert command[command.index("--stream") + 1] == "false"
-    assert "--plan" not in command
+    assert "--plan" in command
+    assert "--thinking" in command
     assert "-o" not in command
     assert "--output-file" not in command
 
@@ -719,6 +803,26 @@ def test_build_provider_command_for_claude_disables_session_persistence(tmp_path
     )
 
     assert command == ["claude", "-p", "compatibility", "--no-session-persistence"]
+
+
+def test_build_provider_command_for_opencode_plan_lane_uses_agent_model_and_thinking(tmp_path):
+    lane = list_lane_presets()["opencode-minimax-plan-thinking"]
+
+    command = runtime_module.build_provider_command(
+        "opencode",
+        binary="opencode",
+        prompt="compatibility",
+        output_file=tmp_path / "raw.txt",
+        workdir=tmp_path,
+        timeout_seconds=45,
+        lane=lane,
+    )
+
+    assert "--agent" in command
+    assert command[command.index("--agent") + 1] == "plan"
+    assert "--model" in command
+    assert command[command.index("--model") + 1] == "opencode/minimax-m2.5-free"
+    assert "--thinking" in command
 
 
 def test_provider_runtime_env_for_iflow_uses_state_dir_parent():
@@ -879,6 +983,34 @@ def test_windowed_timeout_respects_timeout_with_partial_output(tmp_path):
     )
     assert "partial" in timeout_log
     assert "timed out after 1s" in timeout_log
+
+
+def test_headless_timeout_preserves_valid_payload_if_review_was_already_emitted(tmp_path):
+    script_path = tmp_path / "iflow.py"
+    write_valid_payload_then_sleep_provider_script(script_path, "iflow", seconds=2)
+    snapshot = {
+        "iflow": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/iflow"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="headless timeout payload salvage",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["iflow"],
+        timeout_seconds=1,
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    provider_review = review.provider_reviews[0]
+    assert review.verdict == "proceed"
+    assert provider_review.review_stage == "runtime"
+    assert provider_review.summary == "iflow emitted a review before timing out"
+    assert any("timed out after 1s" in note for note in provider_review.non_blocking_notes)
 
 
 def test_run_orchestration_applies_provider_override_env_from_config(tmp_path, monkeypatch):

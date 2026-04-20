@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -10,6 +11,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from open_clodex_iflow.contracts import ArtifactPacket, ProviderReview, write_json
+from open_clodex_iflow.lanes import LanePreset
 
 RUNTIME_PROVIDERS = ("claude", "iflow", "opencode")
 ALLOWED_VERDICTS = {"proceed", "fix_code", "fix_plan", "block"}
@@ -91,13 +93,19 @@ def build_provider_command(
     workdir: Path,
     timeout_seconds: int,
     python_executable: Path | None = None,
+    lane: LanePreset | None = None,
 ) -> list[str]:
     prefix = command_prefix(binary, python_executable)
     if provider == "claude":
         return [*prefix, "-p", prompt, "--no-session-persistence"]
     if provider == "iflow":
-        return [
+        command = [
             *prefix,
+        ]
+        if lane and lane.model:
+            command.extend(["-m", lane.model])
+        command.extend(
+            [
             "-p",
             prompt,
             "--max-turns",
@@ -106,9 +114,25 @@ def build_provider_command(
             str(timeout_seconds),
             "--stream",
             "false",
-        ]
+            ]
+        )
+        if lane and lane.plan:
+            command.append("--plan")
+        if lane and lane.thinking:
+            command.append("--thinking")
+        return command
     if provider == "opencode":
-        return [*prefix, "run", "--format", "json", "--dir", str(workdir), prompt]
+        command = [*prefix, "run", "--format", "json", "--dir", str(workdir)]
+        if lane and lane.agent:
+            command.extend(["--agent", lane.agent])
+        if lane and lane.model:
+            command.extend(["--model", lane.model])
+        if lane and lane.variant:
+            command.extend(["--variant", lane.variant])
+        if lane and lane.thinking:
+            command.append("--thinking")
+        command.append(prompt)
+        return command
     raise ValueError(f"Unsupported provider for runtime execution: {provider}")
 
 
@@ -221,6 +245,16 @@ def parse_review_text(text: str) -> dict[str, Any]:
     if whole_text_candidate is not None:
         candidates.append(whole_text_candidate)
 
+    fenced_matches = re.findall(
+        r"```(?:json)?\s*([\[{][\s\S]*?[\]}])\s*```",
+        stripped,
+        flags=re.IGNORECASE,
+    )
+    for match in fenced_matches:
+        parsed = parse_json_candidate(match)
+        if parsed is not None:
+            candidates.append(parsed)
+
     try:
         candidates.append(json.loads(stripped))
     except json.JSONDecodeError:
@@ -278,6 +312,7 @@ def normalize_review(
     runtime_mode: str,
     raw_output_file: Path,
     log_file: Path,
+    lane: LanePreset | None = None,
 ) -> ProviderReview:
     provider_name = str(payload.get("provider", ""))
     if provider_name != provider:
@@ -289,6 +324,7 @@ def normalize_review(
     confidence = normalize_confidence(payload.get("confidence", "medium"))
     return ProviderReview(
         provider=provider,
+        lane_id=lane.lane_id if lane else provider,
         review_stage="runtime",
         verdict=verdict,
         summary=str(payload.get("summary", f"{provider} completed review")),
@@ -310,9 +346,11 @@ def synthetic_failure_review(
     runtime_mode: str,
     raw_output_file: Path,
     log_file: Path,
+    lane: LanePreset | None = None,
 ) -> ProviderReview:
     return ProviderReview(
         provider=provider,
+        lane_id=lane.lane_id if lane else provider,
         review_stage="synthetic-failure",
         verdict="block",
         summary=f"{provider} runtime failed before producing a valid review",
@@ -443,6 +481,7 @@ def run_provider_review(
     timeout_seconds: int = 180,
     python_executable: Path | None = None,
     provider_override: dict[str, object] | None = None,
+    lane: LanePreset | None = None,
 ) -> ProviderReview:
     output_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = output_dir / "stdout.txt"
@@ -462,6 +501,7 @@ def run_provider_review(
         workdir=project_root,
         timeout_seconds=timeout_seconds,
         python_executable=python_executable,
+        lane=lane,
     )
     runner = select_runner(runtime_mode)
     extra_env = provider_runtime_env(provider, metadata)
@@ -483,11 +523,18 @@ def run_provider_review(
     except subprocess.TimeoutExpired as exc:
         timeout_note = f"{provider} timed out after {timeout_seconds}s"
         partial_stdout = ""
+        partial_stderr = ""
         if exc.output:
             partial_stdout = (
                 exc.output.decode("utf-8", errors="replace")
                 if isinstance(exc.output, bytes)
                 else str(exc.output)
+            )
+        if exc.stderr:
+            partial_stderr = (
+                exc.stderr.decode("utf-8", errors="replace")
+                if isinstance(exc.stderr, bytes)
+                else str(exc.stderr)
             )
         if partial_stdout and not partial_stdout.endswith("\n"):
             partial_stdout += "\n"
@@ -495,14 +542,33 @@ def run_provider_review(
             partial_stdout + f"{timeout_note} before stdout could be collected.\n",
             encoding="utf-8",
         )
-        stderr_path.write_text("", encoding="utf-8")
-        raw_output_path.write_text(partial_stdout, encoding="utf-8")
+        stderr_path.write_text(partial_stderr, encoding="utf-8")
+        source_text = strip_execution_info(partial_stdout) if provider == "iflow" else partial_stdout
+        raw_output_path.write_text(source_text, encoding="utf-8")
+        try:
+            payload = parse_review_text(source_text)
+            review = normalize_review(
+                provider,
+                payload,
+                runtime_mode=runtime_mode,
+                raw_output_file=raw_output_path,
+                log_file=stdout_path,
+                lane=lane,
+            )
+            review.non_blocking_notes.append(
+                f"{timeout_note}; using the last valid payload emitted before process exit."
+            )
+            write_json(review_path, review)
+            return review
+        except ValueError:
+            pass
         review = synthetic_failure_review(
             provider,
             timeout_note,
             runtime_mode=runtime_mode,
             raw_output_file=raw_output_path,
             log_file=stdout_path,
+            lane=lane,
         )
         write_json(review_path, review)
         return review
@@ -521,6 +587,7 @@ def run_provider_review(
             runtime_mode=runtime_mode,
             raw_output_file=raw_output_path,
             log_file=stdout_path,
+            lane=lane,
         )
         write_json(review_path, review)
         return review
@@ -536,6 +603,7 @@ def run_provider_review(
             runtime_mode=runtime_mode,
             raw_output_file=raw_output_path,
             log_file=stdout_path,
+            lane=lane,
         )
     except ValueError as exc:
         review = synthetic_failure_review(
@@ -544,6 +612,7 @@ def run_provider_review(
             runtime_mode=runtime_mode,
             raw_output_file=raw_output_path,
             log_file=stdout_path,
+            lane=lane,
         )
 
     write_json(review_path, review)

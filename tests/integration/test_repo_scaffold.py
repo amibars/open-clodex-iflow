@@ -6,6 +6,11 @@ from pathlib import Path
 
 
 REQUIRED_PATHS = [
+    "LICENSE",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md",
     "docs/START_HERE.md",
     "docs/READ_FIRST.md",
     "docs/EXECUTION_PRINCIPLES.md",
@@ -16,6 +21,8 @@ REQUIRED_PATHS = [
     "docs/ORCHESTRATED.md",
     "docs/ARCHITECTURE_BASELINE.md",
     "docs/QUALITY_GATES.md",
+    "docs/OPERATOR_RUNBOOK.md",
+    "docs/releases/v0.1.0.md",
     "docs/ARCH_SPEC.md",
     "docs/JTBD.md",
     "TASKS.md",

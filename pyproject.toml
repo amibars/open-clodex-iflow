@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Windows-first orchestration and scaffold tool for Codex, Claude Code, iFlow, and OpenCode."
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
 authors = [
   { name = "karte" }
 ]

@@ -1,0 +1,152 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+DEFAULT_LANE_SET_ID = "default-planners"
+
+
+@dataclass(frozen=True, slots=True)
+class LanePreset:
+    lane_id: str
+    provider: str
+    description: str
+    model: str | None = None
+    agent: str | None = None
+    variant: str | None = None
+    plan: bool = False
+    thinking: bool = False
+    write_authority: str = "plan-only"
+    included_in_default_set: bool = False
+
+
+def list_lane_presets() -> dict[str, LanePreset]:
+    return {
+        "iflow-glm5-plan-thinking": LanePreset(
+            lane_id="iflow-glm5-plan-thinking",
+            provider="iflow",
+            description="Planner lane for GLM-5 with thinking requested.",
+            model="GLM-5",
+            plan=True,
+            thinking=True,
+            included_in_default_set=True,
+        ),
+        "iflow-qwen3coder-plan": LanePreset(
+            lane_id="iflow-qwen3coder-plan",
+            provider="iflow",
+            description="Planner lane for Qwen3-Coder-Plus without thinking toggle.",
+            model="Qwen3-Coder-Plus",
+            plan=True,
+            thinking=False,
+            included_in_default_set=True,
+        ),
+        "iflow-kimi-k25-plan-thinking": LanePreset(
+            lane_id="iflow-kimi-k25-plan-thinking",
+            provider="iflow",
+            description="Planner lane for Kimi-K2.5 with thinking requested.",
+            model="Kimi-K2.5",
+            plan=True,
+            thinking=True,
+            included_in_default_set=True,
+        ),
+        "iflow-minimax-plan-thinking": LanePreset(
+            lane_id="iflow-minimax-plan-thinking",
+            provider="iflow",
+            description="Optional MiniMax-M2.5 planner lane through iflow.",
+            model="MiniMax-M2.5",
+            plan=True,
+            thinking=True,
+            included_in_default_set=False,
+        ),
+        "opencode-minimax-plan-thinking": LanePreset(
+            lane_id="opencode-minimax-plan-thinking",
+            provider="opencode",
+            description="Planner lane through opencode using MiniMax M2.5 Free and thinking.",
+            model="opencode/minimax-m2.5-free",
+            agent="plan",
+            thinking=True,
+            included_in_default_set=True,
+        ),
+        "opencode-minimax-build-thinking": LanePreset(
+            lane_id="opencode-minimax-build-thinking",
+            provider="opencode",
+            description="Explicit write-capable build lane through opencode using MiniMax M2.5 Free.",
+            model="opencode/minimax-m2.5-free",
+            agent="build",
+            thinking=True,
+            write_authority="write-capable",
+            included_in_default_set=False,
+        ),
+    }
+
+
+def default_lane_ids() -> list[str]:
+    return [
+        lane.lane_id
+        for lane in list_lane_presets().values()
+        if lane.included_in_default_set
+    ]
+
+
+def lane_set_catalog() -> dict[str, list[str]]:
+    return {
+        DEFAULT_LANE_SET_ID: default_lane_ids(),
+    }
+
+
+def supported_lane_set_ids() -> list[str]:
+    return list(lane_set_catalog().keys())
+
+
+def resolve_lane_selection(
+    provider_snapshot: dict[str, dict[str, object]],
+    *,
+    requested_lane_ids: list[str] | None = None,
+    lane_set: str = DEFAULT_LANE_SET_ID,
+) -> tuple[list[LanePreset], list[str]]:
+    catalog = list_lane_presets()
+    requested = requested_lane_ids or lane_set_catalog().get(lane_set, [])
+    resolved: list[LanePreset] = []
+    dropped: list[str] = []
+
+    for lane_id in requested:
+        preset = catalog.get(lane_id)
+        if preset is None:
+            dropped.append(lane_id)
+            continue
+        metadata = provider_snapshot.get(preset.provider, {})
+        if not (metadata.get("available") and metadata.get("binary")):
+            dropped.append(lane_id)
+            continue
+        resolved.append(preset)
+
+    return resolved, dropped
+
+
+def render_lane_catalog() -> str:
+    presets = list_lane_presets()
+    lines = [
+        "Lane sets:",
+        f"- {DEFAULT_LANE_SET_ID}: {', '.join(default_lane_ids())}",
+        "",
+        "Lane presets:",
+    ]
+    for preset in presets.values():
+        default_marker = " [default]" if preset.included_in_default_set else ""
+        model = preset.model or "provider-default"
+        agent = preset.agent or "provider-default"
+        thinking = "on" if preset.thinking else "off"
+        plan_mode = "on" if preset.plan else "off"
+        lines.append(
+            f"- {preset.lane_id}{default_marker}: provider={preset.provider} model={model} "
+            f"agent={agent} plan={plan_mode} thinking={thinking} write={preset.write_authority}"
+        )
+    lines.extend(
+        [
+            "",
+            "CLI toggles:",
+            "- /orch uses the default-planners lane set unless you pass --providers or --lanes.",
+            "- --lanes laneA,laneB selects explicit lanes.",
+            "- --providers claude,iflow,opencode keeps the legacy provider-only path.",
+        ]
+    )
+    return "\n".join(lines)

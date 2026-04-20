@@ -14,6 +14,13 @@
       ]
     },
     {
+      "source": "src/open_clodex_iflow/lanes.py",
+      "tests": [
+        "tests/unit/test_lanes.py",
+        "tests/unit/test_orch_runtime.py"
+      ]
+    },
+    {
       "source": "src/open_clodex_iflow/adapters/discovery.py",
       "tests": [
         "tests/unit/test_discovery.py"

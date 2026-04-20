@@ -29,6 +29,7 @@ class ArtifactPacket:
     fan_out_requested: bool
     planned_providers: list[str]
     provider_snapshot: dict[str, dict[str, object]]
+    planned_lanes: list[str] = field(default_factory=list)
     required_docs_gate_passed: bool = True
     traceability_audit_path: str = "docs/GUIDE_TRACEABILITY_AUDIT.md"
     notes: list[str] = field(default_factory=list)
@@ -51,6 +52,7 @@ class ProviderReview:
     tests_to_add: list[str] = field(default_factory=list)
     plan_risks: list[str] = field(default_factory=list)
     confidence: str = "medium"
+    lane_id: str | None = None
     runtime_mode: str | None = None
     raw_output_file: str | None = None
     log_file: str | None = None

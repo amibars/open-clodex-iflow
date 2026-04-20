@@ -83,6 +83,69 @@ def test_orch_uses_runtime_orchestrator(monkeypatch, tmp_path):
     assert captured["timeout_seconds"] == 15
 
 
+def test_orch_defaults_to_lane_pack_when_no_explicit_provider_selection(monkeypatch, tmp_path):
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        cli,
+        "discover_cli_state",
+        lambda: {
+            "iflow": {"available": True, "binary": "iflow", "state_dirs": ["C:/Users/karte/.iflow"]},
+            "opencode": {"available": True, "binary": "opencode", "state_dirs": ["C:/Users/karte/.opencode"]},
+        },
+    )
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-15T00:00:00Z",
+        mode="orch",
+        task="default lanes",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["iflow", "opencode"],
+        planned_lanes=[
+            "iflow-glm5-plan-thinking",
+            "iflow-qwen3coder-plan",
+            "iflow-kimi-k25-plan-thinking",
+            "opencode-minimax-plan-thinking",
+        ],
+        provider_snapshot={},
+        next_step="Inspect runtime reviews.",
+    )
+    review = ConsolidatedReview(
+        trace_id="trace-test",
+        generated_at="2026-04-15T00:00:01Z",
+        review_stage="runtime",
+        verdict="proceed",
+        provider_reviews=[],
+        next_action="Proceed",
+    )
+    monkeypatch.setattr(
+        cli,
+        "run_orchestration",
+        lambda **kwargs: captured.update(kwargs) or (artifact, review),
+    )
+
+    exit_code = cli.main(["orch", "default lanes", "--mode", "headless", "--output-dir", str(tmp_path)])
+
+    assert exit_code == 0
+    assert captured["requested_lanes"] is None
+    assert captured["lane_set"] == "default-planners"
+    assert captured["requested_providers"] is None
+
+
+def test_lanes_command_prints_default_and_optional_profiles(capsys):
+    exit_code = cli.main(["lanes"])
+
+    captured = capsys.readouterr().out
+    assert exit_code == 0
+    assert "default-planners" in captured
+    assert "iflow-glm5-plan-thinking" in captured
+    assert "opencode-minimax-plan-thinking" in captured
+    assert "opencode-minimax-build-thinking" in captured
+
+
 def test_scaffold_command_creates_workspace(tmp_path):
     destination = tmp_path / "demo-workspace"
 
