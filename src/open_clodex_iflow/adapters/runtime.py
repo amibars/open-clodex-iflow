@@ -50,12 +50,18 @@ def command_prefix(binary: str, python_executable: Path | None = None) -> list[s
 
 def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
     artifact_payload = json.dumps(artifact.to_dict(), sort_keys=True)
+    scope_rule = (
+        "Only evaluate planned_providers and planned_lanes. "
+        "A missing provider in provider_snapshot is not blocking when that provider is not planned; "
+        "treat it as context only. "
+    )
     if provider == "claude":
         compact_payload = json.dumps(artifact.to_dict(), separators=(",", ":"), sort_keys=True)
         return (
             "Return exactly one minified JSON object with keys provider, verdict, summary, "
             "blocking_findings, non_blocking_notes, tests_to_add, plan_risks, confidence. "
             "provider must be claude. "
+            f"{scope_rule}"
             "verdict must be one of proceed, fix_code, fix_plan, block. "
             "confidence must be one of low, medium, high. "
             f"Artifact: {compact_payload}"
@@ -67,6 +73,7 @@ def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
             "Use keys provider, verdict, summary, blocking_findings, non_blocking_notes, "
             "tests_to_add, plan_risks, confidence. "
             "provider must be iflow. "
+            f"{scope_rule}"
             "verdict must be one of proceed, fix_code, fix_plan, block. "
             "confidence must be one of low, medium, high. "
             f"Artifact: {compact_payload}"
@@ -78,6 +85,7 @@ def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
         "Review the structured artifact below and return ONLY one JSON object.\n"
         "Required keys: provider, verdict, summary, blocking_findings, non_blocking_notes, "
         "tests_to_add, plan_risks, confidence.\n"
+        f"{scope_rule}\n"
         "Allowed verdict values: proceed, fix_code, fix_plan, block.\n"
         "Artifact:\n"
         f"{artifact_payload}\n"

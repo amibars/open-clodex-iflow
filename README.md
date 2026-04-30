@@ -20,6 +20,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 - `scaffold`: bootstrap an Iron Dome-compatible workspace in a target directory
 
 Live provider status is tracked in `docs/PROVIDER_COMPATIBILITY.md`.
+OpenCode lane benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`.
 Guide adaptation traceability and source-of-truth coverage are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
 `docs/PROVIDER_COMPATIBILITY.md` tracks the latest documented live evidence per provider, including blocked or synthetic-failure snapshots when no successful review completed.
 
@@ -45,19 +46,19 @@ open-clodex-iflow doctor
 open-clodex-iflow lanes
 open-clodex-iflow solo "Summarize the current task"
 open-clodex-iflow orch "Review repository readiness" --mode headless
+open-clodex-iflow orch "Review repository readiness" --lanes opencode-hy3-preview-plan-thinking --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-minimax-build-thinking --mode headless
 open-clodex-iflow scaffold C:\Projects\my-new-workspace
 ```
 
-The default `/orch` path now resolves a planner-oriented lane pack instead of a raw provider list. Today that means:
+The default `/orch` path now resolves a planner-oriented lane pack instead of a raw provider list. Today the default pack is intentionally narrow:
 
-- `iflow-glm5-plan-thinking`
-- `iflow-qwen3coder-plan`
-- `iflow-kimi-k25-plan-thinking`
-- `opencode-minimax-plan-thinking`
+- `opencode-minimax-plan`
 
-`iflow` presets request `--plan` and, where configured, `--thinking`; the latter remains best-effort because `iflow` only enables it when the selected model supports it. The explicit write-capable lane is currently `opencode-minimax-build-thinking`; it is never part of the default pack and must be requested on purpose.
-Recent local evidence now covers all four default planner lanes on this machine, but two `iflow` lanes (`GLM-5` and `Qwen3-Coder-Plus`) may emit a valid review payload before the process exits cleanly. The runtime now preserves that payload instead of downgrading it to a synthetic failure.
+`opencode-minimax-plan` is the current default because the 2026-04-30 local OpenCode benchmark found it to be the fastest correct `/orch` planner candidate without relying on prompt-sensitive thinking behavior. `opencode-minimax-plan-thinking`, `opencode-gpt5nano-plan-thinking`, `opencode-hy3-preview-plan-thinking`, `opencode-big-pickle-plan-thinking`, and `opencode-nemotron3-super-plan-thinking` are explicit optional lanes; see `docs/OPENCODE_MODEL_BENCHMARK.md` before promoting them.
+
+`iflow` presets still exist, but they are explicit legacy/API-key lanes after the April 2026 iFlow CLI shutdown notice. Use `--lanes iflow-kimi-k25-plan-thinking` or another explicit iFlow lane only when you intentionally want to spend/use your configured iFlow-compatible API key. The explicit write-capable lane is currently `opencode-minimax-build-thinking`; it is never part of the default pack and must be requested on purpose.
+Recent local evidence before the shutdown/API-key drift covered the old iFlow planner lanes on this machine. That evidence is now historical, not a reason to keep iFlow in the default path.
 Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treating any provider or lane as success-verified on a different machine.
 
 ## Platform support
@@ -78,6 +79,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 - `docs/AGENTS.md`
 - `docs/JTBD.md`
 - `docs/ORCHESTRATED.md`
+- `docs/OPENCODE_MODEL_BENCHMARK.md`
 - `docs/ARCHITECTURE_BASELINE.md`
 - `docs/QUALITY_GATES.md`
 - `TASKS.md`
@@ -101,7 +103,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 
 This repository is a working sequential v1 orchestrator baseline.
 The runtime path for `/orch` is implemented for runnable providers (`claude`, `iflow`, `opencode`) and no longer stops at preflight-only orchestration.
-Adapter support in code is not the same as guaranteed live success. The current documented live evidence is now success-documented for all three runnable providers on this machine: `opencode`, `iflow`, and `claude`.
+Adapter support in code is not the same as guaranteed live success. The current default path is success-documented for `opencode` on this machine. `claude` has prior live-success evidence after quota reset. `iflow` has historical success evidence but is now explicit legacy/API-key only after shutdown/API-key drift.
 See `docs/PROVIDER_COMPATIBILITY.md` for the latest documented smoke snapshot and interpretation rules.
 See `docs/OPERATOR_RUNBOOK.md` for the step-by-step operator flow of the current v1.
 

@@ -5,7 +5,7 @@ from open_clodex_iflow.lanes import (
 )
 
 
-def test_default_lane_set_prefers_single_minimax_source_and_planner_modes():
+def test_default_lane_set_prefers_fast_single_opencode_planner_lane():
     snapshot = {
         "iflow": {"available": True, "binary": "iflow"},
         "opencode": {"available": True, "binary": "opencode"},
@@ -15,12 +15,10 @@ def test_default_lane_set_prefers_single_minimax_source_and_planner_modes():
 
     assert dropped == []
     assert [lane.lane_id for lane in lanes] == [
-        "iflow-glm5-plan-thinking",
-        "iflow-qwen3coder-plan",
-        "iflow-kimi-k25-plan-thinking",
-        "opencode-minimax-plan-thinking",
+        "opencode-minimax-plan",
     ]
     assert all(lane.write_authority == "plan-only" for lane in lanes)
+    assert all(lane.agent == "plan" for lane in lanes)
 
 
 def test_lane_catalog_exposes_optional_non_default_lanes():
@@ -28,5 +26,17 @@ def test_lane_catalog_exposes_optional_non_default_lanes():
 
     assert "iflow-minimax-plan-thinking" in presets
     assert presets["iflow-minimax-plan-thinking"].included_in_default_set is False
+    assert presets["iflow-glm5-plan-thinking"].included_in_default_set is False
+    assert presets["iflow-qwen3coder-plan"].included_in_default_set is False
+    assert presets["iflow-kimi-k25-plan-thinking"].included_in_default_set is False
+    assert "opencode-gpt5nano-plan-thinking" in presets
+    assert presets["opencode-gpt5nano-plan-thinking"].included_in_default_set is False
+    assert "opencode-minimax-plan" in presets
+    assert presets["opencode-minimax-plan"].thinking is False
+    assert presets["opencode-minimax-plan"].included_in_default_set is True
+    assert presets["opencode-minimax-plan-thinking"].included_in_default_set is False
+    assert "opencode-hy3-preview-plan-thinking" in presets
+    assert "opencode-big-pickle-plan-thinking" in presets
+    assert "opencode-nemotron3-super-plan-thinking" in presets
     assert "opencode-minimax-build-thinking" in presets
     assert presets["opencode-minimax-build-thinking"].write_authority == "write-capable"

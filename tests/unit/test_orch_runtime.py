@@ -252,6 +252,31 @@ else:
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
 
+def test_review_prompt_marks_unplanned_missing_providers_as_non_blocking():
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-30T00:00:00Z",
+        mode="orch",
+        task="review default lane",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["opencode"],
+        planned_lanes=["opencode-minimax-plan"],
+        provider_snapshot={
+            "iflow": {"available": False, "binary": None, "readiness": "missing"},
+            "opencode": {"available": True, "binary": "opencode", "readiness": "binary+state"},
+        },
+        next_step="Inspect runtime reviews.",
+    )
+
+    prompt = runtime_module.build_review_prompt("opencode", artifact)
+
+    assert "Only evaluate planned_providers and planned_lanes" in prompt
+    assert "not blocking when that provider is not planned" in prompt
+
+
 def write_iflow_stdout_provider_script(path: Path, provider: str) -> None:
     payload = {
         "provider": provider,
@@ -393,16 +418,12 @@ def test_run_orchestration_defaults_to_lane_aware_planner_pack(tmp_path):
         python_executable=Path(sys.executable),
     )
 
-    assert artifact.planned_providers == ["iflow", "opencode"]
+    assert artifact.planned_providers == ["opencode"]
     assert artifact.planned_lanes == [
-        "iflow-glm5-plan-thinking",
-        "iflow-kimi-k25-plan-thinking",
-        "iflow-qwen3coder-plan",
-        "opencode-minimax-plan-thinking",
+        "opencode-minimax-plan",
     ]
-    assert len(review.provider_reviews) == 4
-    assert (tmp_path / "session" / "providers" / "iflow-glm5-plan-thinking" / "review.json").exists()
-    assert (tmp_path / "session" / "providers" / "opencode-minimax-plan-thinking" / "review.json").exists()
+    assert len(review.provider_reviews) == 1
+    assert (tmp_path / "session" / "providers" / "opencode-minimax-plan" / "review.json").exists()
 
 
 def test_select_runner_returns_expected_execution_function():
@@ -823,6 +844,26 @@ def test_build_provider_command_for_opencode_plan_lane_uses_agent_model_and_thin
     assert "--model" in command
     assert command[command.index("--model") + 1] == "opencode/minimax-m2.5-free"
     assert "--thinking" in command
+
+
+def test_build_provider_command_for_opencode_plan_lane_can_disable_thinking(tmp_path):
+    lane = list_lane_presets()["opencode-minimax-plan"]
+
+    command = runtime_module.build_provider_command(
+        "opencode",
+        binary="opencode",
+        prompt="compatibility",
+        output_file=tmp_path / "raw.txt",
+        workdir=tmp_path,
+        timeout_seconds=45,
+        lane=lane,
+    )
+
+    assert "--agent" in command
+    assert command[command.index("--agent") + 1] == "plan"
+    assert "--model" in command
+    assert command[command.index("--model") + 1] == "opencode/minimax-m2.5-free"
+    assert "--thinking" not in command
 
 
 def test_provider_runtime_env_for_iflow_uses_state_dir_parent():

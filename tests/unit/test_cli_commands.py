@@ -105,10 +105,7 @@ def test_orch_defaults_to_lane_pack_when_no_explicit_provider_selection(monkeypa
         fan_out_requested=True,
         planned_providers=["iflow", "opencode"],
         planned_lanes=[
-            "iflow-glm5-plan-thinking",
-            "iflow-qwen3coder-plan",
-            "iflow-kimi-k25-plan-thinking",
-            "opencode-minimax-plan-thinking",
+            "opencode-minimax-plan",
         ],
         provider_snapshot={},
         next_step="Inspect runtime reviews.",
@@ -141,8 +138,10 @@ def test_lanes_command_prints_default_and_optional_profiles(capsys):
     captured = capsys.readouterr().out
     assert exit_code == 0
     assert "default-planners" in captured
+    assert "opencode-minimax-plan" in captured
+    assert "opencode-gpt5nano-plan-thinking" in captured
     assert "iflow-glm5-plan-thinking" in captured
-    assert "opencode-minimax-plan-thinking" in captured
+    assert "legacy/API-key" in captured
     assert "opencode-minimax-build-thinking" in captured
 
 

@@ -11,12 +11,12 @@
 | Provider | Adapter in code | Non-interactive surface used now | Last documented live snapshot (2026-04-15) | Notes |
 | --- | --- | --- | --- | --- |
 | `claude` | yes | `claude -p --no-session-persistence` | live success documented | runtime now uses a compact provider-specific prompt plus `--no-session-persistence`; live headless `/orch` produces a normalized provider review after the quota reset |
-| `iflow` | yes | `iflow -m <model> -p --plan --max-turns 1 --timeout <n> --stream false [--thinking]` | live success documented | runtime now uses `iflow` lane presets for planner lanes; `--thinking` is best-effort because the CLI only enables it when the selected model supports it, and timeout salvage now preserves a valid payload if the process lingers after printing it |
-| `opencode` | yes | `opencode run --format json --dir <repo> [--agent <agent>] [--model <provider/model>] [--thinking]` | live success documented | runtime now supports `opencode` planner/build lanes through `--agent`; the default pack uses `opencode-minimax-plan-thinking`, while `opencode-minimax-build-thinking` stays explicit |
+| `iflow` | yes | `iflow -m <model> -p --plan --max-turns 1 --timeout <n> --stream false [--thinking]` | historical success; now explicit legacy/API-key only | official iFlow CLI docs say the CLI was scheduled for shutdown on 2026-04-17 Beijing time; local settings now show an OpenAI-compatible API-key path, so iFlow is no longer safe as a default lane |
+| `opencode` | yes | `opencode run --format json --dir <repo> [--agent <agent>] [--model <provider/model>] [--thinking]` | live success documented | runtime now supports `opencode` planner/build lanes through `--agent`; the default pack uses `opencode-minimax-plan`, while `opencode-minimax-build-thinking` stays explicit |
 
 ---
 
-## Last documented smoke snapshot (2026-04-15)
+## Last documented smoke snapshot
 
 - `opencode`
   - `orch` completed successfully in headless mode.
@@ -28,14 +28,17 @@
   - The remaining caveat is contract-specific, not auth-specific: the older verbose multi-line prompt shape produced `{}` or follow-up questions, and plain `claude -p` could emit a valid review and still hang in isolated headless execution. The documented happy path is the compact provider-specific prompt plus `--no-session-persistence`.
   - Latest successful local smoke: `C:\Projects\open-clodex-iflow\.tmp\claude-compat-20260415-c`, with valid `review.json`, `raw_output.txt`, and `consolidated_review.json`.
 - `iflow`
+  - Current status update (2026-04-30): official iFlow CLI docs now state that iFlow CLI was scheduled to shut down on 2026-04-17 Beijing time and recommend migration to Qoder. The local iFlow install and settings were removed on this machine, so `doctor` now reports `iflow` as missing.
   - Runtime command now forces `--stream false` and no longer passes `-o/--output-file`; direct probes confirm that `-o` is an execution-metadata channel, not a stable review-payload channel.
-  - Browser login is no longer the active blocker. A direct minimal non-interactive probe returns model text, and a real headless `orch` run now completes with `review_stage=runtime` and `verdict=proceed`.
-  - The remaining caveat is contract-specific, not auth-specific: `iflow` still reacts poorly to the older verbose multi-line prompt shape and to `-o`. The documented happy path is the compact provider-specific prompt plus `--stream false`, with planner presets requesting `--plan` and optional `--thinking`.
-  - A bounded local smoke for the default planner pack now documents all three `iflow` planner lanes as `runtime` successes on this machine. `GLM-5` and `Qwen3-Coder-Plus` can print a valid review payload before the provider exits; the runtime now preserves that last valid payload instead of converting it into a synthetic timeout failure.
-  - Latest successful local smoke: `C:\Projects\open-clodex-iflow\.tmp\iflow-compat-20260415-d`, with valid `review.json`, `raw_output.txt`, and `consolidated_review.json`.
+  - Historical local smoke evidence exists from before the shutdown/API-key drift, but it is no longer current operator truth for this machine.
+  - Treat iFlow lanes as explicit paid/API-key or legacy lanes only. They are adapter-supported but not default free lanes.
+  - Historical successful local smoke: `C:\Projects\open-clodex-iflow\.tmp\iflow-compat-20260415-d`, with valid `review.json`, `raw_output.txt`, and `consolidated_review.json`.
 - `opencode`
   - `opencode` now has a documented lane contract around `--agent`, with `plan` and `build` exposed through non-interactive CLI surface rather than only through the TUI.
-  - The default planner pack uses `opencode-minimax-plan-thinking`; the explicit write-capable path is `opencode-minimax-build-thinking`.
+  - The default planner pack uses `opencode-minimax-plan`; the explicit write-capable path is `opencode-minimax-build-thinking`.
+  - The 2026-04-30 OpenCode benchmark found `opencode/minimax-m2.5-free` without thinking to be the fastest correct `/orch` planner candidate. `opencode/gpt-5-nano` is fast but produced a false planning block against missing unplanned iFlow in one smoke. `opencode/nemotron-3-super-free` is capable but too slow/flaky for the default pack right now, and `opencode/big-pickle` produced a Windows runtime exit in one candidate smoke.
+  - After adding an explicit prompt scope rule, the default `opencode-minimax-plan` smoke completed with `review_stage=runtime` and `verdict=proceed`; missing unplanned iFlow was treated as context only.
+  - `opencode models nvidia` currently returns `Provider not found: nvidia`, so Nvidia/TUI-only models are not enabled as default lanes until valid CLI ids are proven.
   - We currently treat `thinking` as requested behavior, not a universal backend guarantee; provider/model-specific semantics can still vary.
 
 ---
@@ -47,7 +50,7 @@
 - **Failure-path evidence** means the adapter reached a real provider execution path and produced checkable blocking artifacts, but did not complete a successful review.
 - `doctor` readiness (`missing`, `binary-only`, `binary+state`) is a discovery signal only. It is not proof that a provider can complete a real review right now.
 - For `claude`, this snapshot documents a successful live review completion on this machine, but the success currently depends on the compact `claude` prompt contract and `--no-session-persistence`.
-- For `iflow`, this snapshot documents a successful live review completion on this machine, but the success currently depends on the compact `iflow` prompt contract and `--stream false`.
+- For `iflow`, the old success snapshot is historical. Current operator truth is explicit opt-in only because the provider has shifted to shutdown/API-key behavior.
 - For `iflow`, planner presets also depend on the selected model honoring `--plan` and, optionally, `--thinking`; the CLI does not expose a model capability matrix, so those toggles are best-effort outside the documented local smokes.
 - For `opencode`, planner/build lane selection now depends on `--agent plan|build` rather than TUI-only mode selection.
 - Presence of `review.json`, `session.log`, `stdout.txt`, or other artifacts alone is not evidence of provider success; success requires a normalized provider review with `review_stage=runtime`.

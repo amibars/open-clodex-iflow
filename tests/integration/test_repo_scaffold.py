@@ -21,6 +21,7 @@ REQUIRED_PATHS = [
     "docs/ORCHESTRATED.md",
     "docs/ARCHITECTURE_BASELINE.md",
     "docs/QUALITY_GATES.md",
+    "docs/OPENCODE_MODEL_BENCHMARK.md",
     "docs/OPERATOR_RUNBOOK.md",
     "docs/releases/v0.1.0.md",
     "docs/ARCH_SPEC.md",

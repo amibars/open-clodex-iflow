@@ -68,16 +68,25 @@
 - custom API/custom URL only as explicit override
 - explicit override config is loaded from `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - default planner lane pack is:
+  - `opencode-minimax-plan`
+- optional OpenCode planner lanes are:
+  - `opencode-minimax-plan-thinking`
+  - `opencode-gpt5nano-plan-thinking`
+  - `opencode-hy3-preview-plan-thinking`
+  - `opencode-big-pickle-plan-thinking`
+  - `opencode-nemotron3-super-plan-thinking`
+- `iflow` lanes remain available only as explicit legacy/API-key lanes after the April 2026 iFlow CLI shutdown notice:
   - `iflow-glm5-plan-thinking`
   - `iflow-qwen3coder-plan`
   - `iflow-kimi-k25-plan-thinking`
-  - `opencode-minimax-plan-thinking`
+  - `iflow-minimax-plan-thinking`
 - explicit write-capable lane is `opencode-minimax-build-thinking`
 - no raw chat history handoff; only structured packets
 - no silent downgrade from `/orch` to `/solo`
 - no hidden reviewer with write authority over repo truth
 - `windowed` means operator-visible execution; `headless` means capture-only execution
 - `iflow` lane presets request `--plan`; `--thinking` is best-effort because `iflow` only enables it when the selected model supports it
+- OpenCode benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`; TUI-only models are not defaults until their CLI ids and non-interactive behavior are verified
 - legacy `--providers` remains available as a compatibility path when operator wants raw provider routing instead of lane presets
 
 ---

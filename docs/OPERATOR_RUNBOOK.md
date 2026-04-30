@@ -31,16 +31,13 @@ open-clodex-iflow /orch "Review repository readiness" --mode windowed
 
 Without `--providers` or `--lanes`, `/orch` resolves the `default-planners` lane set:
 
-- `iflow-glm5-plan-thinking`
-- `iflow-qwen3coder-plan`
-- `iflow-kimi-k25-plan-thinking`
-- `opencode-minimax-plan-thinking`
+- `opencode-minimax-plan`
 
 This is the recommended default because:
 
 - `Codex` stays the human-facing control plane
-- `iflow` lanes request `--plan`
-- only one `MiniMax` source is used by default
+- the default path avoids iFlow after its April 2026 shutdown/API-key drift
+- the default uses the fastest correct OpenCode planner from the 2026-04-30 local benchmark
 - the explicit write-capable lane is excluded unless requested on purpose
 
 ## 4. Explicit planner or build lanes
@@ -48,7 +45,20 @@ This is the recommended default because:
 Run only the lanes you want:
 
 ```powershell
-open-clodex-iflow /orch "Review the current task" --lanes iflow-glm5-plan-thinking,opencode-minimax-plan-thinking --mode headless
+open-clodex-iflow /orch "Review the current task" --lanes opencode-minimax-plan-thinking --mode headless
+```
+
+Use `gpt-5-nano` or `hy3` when you want an extra OpenCode opinion:
+
+```powershell
+open-clodex-iflow /orch "Review the current task" --lanes opencode-gpt5nano-plan-thinking --mode headless
+open-clodex-iflow /orch "Review the current task" --lanes opencode-hy3-preview-plan-thinking --mode headless
+```
+
+Use iFlow lanes only when you intentionally want to use the configured API-key path:
+
+```powershell
+open-clodex-iflow /orch "Review with iFlow Kimi" --lanes iflow-kimi-k25-plan-thinking --mode headless
 ```
 
 If you want a write-capable lane, request it explicitly:
@@ -88,6 +98,6 @@ Synthetic failures are still useful operational evidence, but they do not prove 
 ## 7. Important caveats
 
 - `windowed` means operator-visible execution in the current terminal, not dedicated OS windows per lane.
-- `iflow --thinking` is best-effort; the CLI itself says it only works when the selected model supports it.
+- `iflow` is explicit opt-in after the April 2026 shutdown/API-key drift; `--thinking` is still best-effort when you use an iFlow lane.
 - `opencode` planner/build lanes are driven through `--agent`, not through TUI automation.
 - This repo does not currently patch Codex or add a native slash mode inside the Codex app itself.
