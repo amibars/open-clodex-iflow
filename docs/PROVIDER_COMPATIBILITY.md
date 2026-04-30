@@ -38,7 +38,8 @@
   - The default planner pack uses `opencode-minimax-plan`; the explicit write-capable path is `opencode-minimax-build-thinking`.
   - The 2026-04-30 OpenCode benchmark found `opencode/minimax-m2.5-free` without thinking to be the fastest correct `/orch` planner candidate. `opencode/gpt-5-nano` is fast but produced a false planning block against missing unplanned iFlow in one smoke. `opencode/nemotron-3-super-free` is capable but too slow/flaky for the default pack right now, and `opencode/big-pickle` produced a Windows runtime exit in one candidate smoke.
   - After adding an explicit prompt scope rule, the default `opencode-minimax-plan` smoke completed with `review_stage=runtime` and `verdict=proceed`; missing unplanned iFlow was treated as context only.
-  - `opencode models nvidia` currently returns `Provider not found: nvidia`, so Nvidia/TUI-only models are not enabled as default lanes until valid CLI ids are proven.
+  - A full requested model pass was added to `docs/OPENCODE_MODEL_BENCHMARK.md`. NVIDIA models require explicit OpenCode provider config plus `NVIDIA_API_KEY` in the runtime environment; auth state alone is not enough for repo-root non-interactive lanes.
+  - Current strongest optional NVIDIA candidates from the bounded pass are GLM-5.1, Devstral-2-123B, Mistral Large 3, Ministral 3, and GLM5. They are not default lanes yet because provider-config handling is not encoded in the orchestrator contract.
   - We currently treat `thinking` as requested behavior, not a universal backend guarantee; provider/model-specific semantics can still vary.
 
 ---
