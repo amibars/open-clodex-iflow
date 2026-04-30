@@ -132,13 +132,80 @@ def test_orch_defaults_to_lane_pack_when_no_explicit_provider_selection(monkeypa
     assert captured["requested_providers"] is None
 
 
+def test_orch_accepts_recommended_planners_lane_set(monkeypatch, tmp_path):
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        cli,
+        "discover_cli_state",
+        lambda: {
+            "opencode": {"available": True, "binary": "opencode", "state_dirs": ["C:/Users/karte/.opencode"]},
+        },
+    )
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-30T00:00:00Z",
+        mode="orch",
+        task="recommended lanes",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["opencode"],
+        planned_lanes=[
+            "opencode-minimax-plan",
+            "nvidia-glm51-plan",
+            "nvidia-devstral2-plan",
+            "nvidia-mistral-large3-plan",
+        ],
+        provider_snapshot={},
+        next_step="Inspect runtime reviews.",
+    )
+    review = ConsolidatedReview(
+        trace_id="trace-test",
+        generated_at="2026-04-30T00:00:01Z",
+        review_stage="runtime",
+        verdict="proceed",
+        provider_reviews=[],
+        next_action="Proceed",
+    )
+    monkeypatch.setattr(
+        cli,
+        "run_orchestration",
+        lambda **kwargs: captured.update(kwargs) or (artifact, review),
+    )
+
+    exit_code = cli.main(
+        [
+            "orch",
+            "recommended lanes",
+            "--mode",
+            "headless",
+            "--lane-set",
+            "recommended-planners",
+            "--output-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["lane_set"] == "recommended-planners"
+    assert captured["requested_lanes"] is None
+    assert captured["requested_providers"] is None
+
+
 def test_lanes_command_prints_default_and_optional_profiles(capsys):
     exit_code = cli.main(["lanes"])
 
     captured = capsys.readouterr().out
     assert exit_code == 0
     assert "default-planners" in captured
+    assert "recommended-planners" in captured
+    assert "- recommended-planners: opencode-minimax-plan, nvidia-glm51-plan" in captured
     assert "opencode-minimax-plan" in captured
+    assert "nvidia-glm51-plan" in captured
+    assert "nvidia-devstral2-plan" in captured
+    assert "nvidia-mistral-large3-plan" in captured
     assert "opencode-gpt5nano-plan-thinking" in captured
     assert "iflow-glm5-plan-thinking" in captured
     assert "legacy/API-key" in captured

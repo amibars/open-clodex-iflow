@@ -46,6 +46,7 @@ open-clodex-iflow doctor
 open-clodex-iflow lanes
 open-clodex-iflow solo "Summarize the current task"
 open-clodex-iflow orch "Review repository readiness" --mode headless
+open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-hy3-preview-plan-thinking --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-minimax-build-thinking --mode headless
 open-clodex-iflow scaffold C:\Projects\my-new-workspace
@@ -56,6 +57,12 @@ The default `/orch` path now resolves a planner-oriented lane pack instead of a 
 - `opencode-minimax-plan`
 
 `opencode-minimax-plan` is the current default because the 2026-04-30 local OpenCode benchmark found it to be the fastest correct `/orch` planner candidate without relying on prompt-sensitive thinking behavior. `opencode-minimax-plan-thinking`, `opencode-gpt5nano-plan-thinking`, `opencode-hy3-preview-plan-thinking`, `opencode-big-pickle-plan-thinking`, and `opencode-nemotron3-super-plan-thinking` are explicit optional lanes; see `docs/OPENCODE_MODEL_BENCHMARK.md` before promoting them.
+
+The stronger non-iFlow review pack is explicit:
+
+- `recommended-planners`: `opencode-minimax-plan`, `nvidia-glm51-plan`, `nvidia-devstral2-plan`, `nvidia-mistral-large3-plan`
+
+These NVIDIA lanes run through OpenCode with `--model nvidia/...`. They require OpenCode `nvidia` provider config plus `NVIDIA_API_KEY` on the machine, so they are not the default pack.
 
 `iflow` presets still exist, but they are explicit legacy/API-key lanes after the April 2026 iFlow CLI shutdown notice. Use `--lanes iflow-kimi-k25-plan-thinking` or another explicit iFlow lane only when you intentionally want to spend/use your configured iFlow-compatible API key. The explicit write-capable lane is currently `opencode-minimax-build-thinking`; it is never part of the default pack and must be requested on purpose.
 Recent local evidence before the shutdown/API-key drift covered the old iFlow planner lanes on this machine. That evidence is now historical, not a reason to keep iFlow in the default path.

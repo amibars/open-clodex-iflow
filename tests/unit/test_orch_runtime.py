@@ -866,6 +866,27 @@ def test_build_provider_command_for_opencode_plan_lane_can_disable_thinking(tmp_
     assert "--thinking" not in command
 
 
+def test_build_provider_command_for_nvidia_lane_runs_through_opencode(tmp_path):
+    lane = list_lane_presets()["nvidia-glm51-plan"]
+
+    command = runtime_module.build_provider_command(
+        "opencode",
+        binary="opencode",
+        prompt="compatibility",
+        output_file=tmp_path / "raw.txt",
+        workdir=tmp_path,
+        timeout_seconds=45,
+        lane=lane,
+    )
+
+    assert command[:3] == ["opencode", "run", "--format"]
+    assert "--agent" in command
+    assert command[command.index("--agent") + 1] == "plan"
+    assert "--model" in command
+    assert command[command.index("--model") + 1] == "nvidia/z-ai/glm-5.1"
+    assert "--thinking" not in command
+
+
 def test_provider_runtime_env_for_iflow_uses_state_dir_parent():
     env = runtime_module.provider_runtime_env(
         "iflow",

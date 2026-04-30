@@ -39,7 +39,9 @@
   - The 2026-04-30 OpenCode benchmark found `opencode/minimax-m2.5-free` without thinking to be the fastest correct `/orch` planner candidate. `opencode/gpt-5-nano` is fast but produced a false planning block against missing unplanned iFlow in one smoke. `opencode/nemotron-3-super-free` is capable but too slow/flaky for the default pack right now, and `opencode/big-pickle` produced a Windows runtime exit in one candidate smoke.
   - After adding an explicit prompt scope rule, the default `opencode-minimax-plan` smoke completed with `review_stage=runtime` and `verdict=proceed`; missing unplanned iFlow was treated as context only.
   - A full requested model pass was added to `docs/OPENCODE_MODEL_BENCHMARK.md`. NVIDIA models require explicit OpenCode provider config plus `NVIDIA_API_KEY` in the runtime environment; auth state alone is not enough for repo-root non-interactive lanes.
-  - Current strongest optional NVIDIA candidates from the bounded pass are GLM-5.1, Devstral-2-123B, Mistral Large 3, Ministral 3, and GLM5. They are not default lanes yet because provider-config handling is not encoded in the orchestrator contract.
+  - Current strongest NVIDIA candidates from the bounded pass are implemented as OpenCode-routed optional lanes: `nvidia-glm51-plan`, `nvidia-devstral2-plan`, and `nvidia-mistral-large3-plan`.
+  - `recommended-planners` is the non-iFlow multi-review lane set. It uses `opencode-minimax-plan` plus the three verified NVIDIA winners. It is not the default because NVIDIA still requires explicit OpenCode provider config plus `NVIDIA_API_KEY` on the machine.
+  - `nvidia-ministral3-plan` and `nvidia-glm5-plan` were intentionally not promoted: Mistral Large 3 is the stronger Mistral-family pick, and GLM-5.1 was faster than GLM5 in the bounded pass.
   - We currently treat `thinking` as requested behavior, not a universal backend guarantee; provider/model-specific semantics can still vary.
 
 ---

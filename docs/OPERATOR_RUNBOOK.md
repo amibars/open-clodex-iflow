@@ -42,6 +42,21 @@ This is the recommended default because:
 
 ## 4. Explicit planner or build lanes
 
+Use the stronger non-iFlow planner pack when OpenCode's NVIDIA provider is configured:
+
+```powershell
+open-clodex-iflow /orch "Review the current task" --lane-set recommended-planners --mode headless
+```
+
+This runs:
+
+- `opencode-minimax-plan`
+- `nvidia-glm51-plan`
+- `nvidia-devstral2-plan`
+- `nvidia-mistral-large3-plan`
+
+Do not use this pack unless `opencode run --model nvidia/...` works on the machine. The lane set is implemented through OpenCode, not through a separate NVIDIA adapter.
+
 Run only the lanes you want:
 
 ```powershell
@@ -53,6 +68,14 @@ Use `gpt-5-nano` or `hy3` when you want an extra OpenCode opinion:
 ```powershell
 open-clodex-iflow /orch "Review the current task" --lanes opencode-gpt5nano-plan-thinking --mode headless
 open-clodex-iflow /orch "Review the current task" --lanes opencode-hy3-preview-plan-thinking --mode headless
+```
+
+Use the verified NVIDIA winners individually when you do not want the whole recommended set:
+
+```powershell
+open-clodex-iflow /orch "Review the current task" --lanes nvidia-glm51-plan --mode headless
+open-clodex-iflow /orch "Review the current task" --lanes nvidia-devstral2-plan --mode headless
+open-clodex-iflow /orch "Review the current task" --lanes nvidia-mistral-large3-plan --mode headless
 ```
 
 Use iFlow lanes only when you intentionally want to use the configured API-key path:

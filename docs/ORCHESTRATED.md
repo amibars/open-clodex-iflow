@@ -22,6 +22,7 @@
 - default runtime mode: `windowed`
 - optional runtime mode: `headless`
 - default lane set: `default-planners`
+- recommended multi-review lane set: `recommended-planners`
 - explicit lane inspection: `lanes`
 
 ---
@@ -69,12 +70,20 @@
 - explicit override config is loaded from `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - default planner lane pack is:
   - `opencode-minimax-plan`
+- recommended planner lane pack is:
+  - `opencode-minimax-plan`
+  - `nvidia-glm51-plan`
+  - `nvidia-devstral2-plan`
+  - `nvidia-mistral-large3-plan`
 - optional OpenCode planner lanes are:
   - `opencode-minimax-plan-thinking`
   - `opencode-gpt5nano-plan-thinking`
   - `opencode-hy3-preview-plan-thinking`
   - `opencode-big-pickle-plan-thinking`
   - `opencode-nemotron3-super-plan-thinking`
+  - `nvidia-glm51-plan`
+  - `nvidia-devstral2-plan`
+  - `nvidia-mistral-large3-plan`
 - `iflow` lanes remain available only as explicit legacy/API-key lanes after the April 2026 iFlow CLI shutdown notice:
   - `iflow-glm5-plan-thinking`
   - `iflow-qwen3coder-plan`
@@ -87,6 +96,7 @@
 - `windowed` means operator-visible execution; `headless` means capture-only execution
 - `iflow` lane presets request `--plan`; `--thinking` is best-effort because `iflow` only enables it when the selected model supports it
 - OpenCode benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`; TUI-only models are not defaults until their CLI ids and non-interactive behavior are verified
+- NVIDIA lane presets are routed through OpenCode and require an OpenCode `nvidia` provider config plus `NVIDIA_API_KEY`; they replace iFlow in the recommended planner set, not in the legacy adapter layer
 - legacy `--providers` remains available as a compatibility path when operator wants raw provider routing instead of lane presets
 
 ---

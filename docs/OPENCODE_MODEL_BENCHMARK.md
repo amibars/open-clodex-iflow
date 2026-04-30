@@ -64,6 +64,9 @@ Explicit optional planner lanes:
 - `opencode-hy3-preview-plan-thinking`
 - `opencode-big-pickle-plan-thinking`
 - `opencode-nemotron3-super-plan-thinking`
+- `nvidia-glm51-plan`
+- `nvidia-devstral2-plan`
+- `nvidia-mistral-large3-plan`
 
 Reasoning:
 
@@ -72,7 +75,7 @@ Reasoning:
 - `GPT-5 Nano` remains optional because speed did not translate into the best `/orch` judgment on the provider snapshot.
 - `Nemotron 3 Super Free` is capable, but currently too slow/flaky for the default pack.
 - `Big Pickle` remains optional because one candidate smoke hit a Windows runtime exit.
-- TUI-only Nvidia/OpenCode Zen models are not product defaults until their CLI ids and non-interactive behavior are verified.
+- NVIDIA lanes are routed through OpenCode and remain opt-in because they require explicit OpenCode `nvidia` provider config plus `NVIDIA_API_KEY`.
 
 ## 2026-04-30 Full Requested Model Pass
 
@@ -117,13 +120,20 @@ Keep default:
 
 - `opencode-minimax-plan`
 
-Add only as explicit optional lanes after provider-config support is documented/implemented:
+Implemented as explicit optional lanes:
 
 - `nvidia-glm51-plan`
 - `nvidia-devstral2-plan`
 - `nvidia-mistral-large3-plan`
-- `nvidia-ministral3-plan`
-- `nvidia-glm5-plan`
+
+Also available as one non-default lane set:
+
+- `recommended-planners`: `opencode-minimax-plan`, `nvidia-glm51-plan`, `nvidia-devstral2-plan`, `nvidia-mistral-large3-plan`
+
+Not promoted:
+
+- `nvidia-ministral3-plan`: Mistral Large 3 is the stronger Mistral-family pick and was faster in the bounded pass.
+- `nvidia-glm5-plan`: GLM-5.1 was faster in the bounded pass.
 
 Do not add as default now:
 

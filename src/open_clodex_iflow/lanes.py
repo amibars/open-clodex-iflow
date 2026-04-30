@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 DEFAULT_LANE_SET_ID = "default-planners"
+RECOMMENDED_LANE_SET_ID = "recommended-planners"
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +118,36 @@ def list_lane_presets() -> dict[str, LanePreset]:
             thinking=True,
             included_in_default_set=False,
         ),
+        "nvidia-glm51-plan": LanePreset(
+            lane_id="nvidia-glm51-plan",
+            provider="opencode",
+            description="Optional NVIDIA-routed GLM-5.1 planner lane through opencode; requires configured nvidia provider credentials.",
+            model="nvidia/z-ai/glm-5.1",
+            agent="plan",
+            plan=True,
+            thinking=False,
+            included_in_default_set=False,
+        ),
+        "nvidia-devstral2-plan": LanePreset(
+            lane_id="nvidia-devstral2-plan",
+            provider="opencode",
+            description="Optional NVIDIA-routed Devstral-2 planner lane through opencode; requires configured nvidia provider credentials.",
+            model="nvidia/mistralai/devstral-2-123b-instruct-2512",
+            agent="plan",
+            plan=True,
+            thinking=False,
+            included_in_default_set=False,
+        ),
+        "nvidia-mistral-large3-plan": LanePreset(
+            lane_id="nvidia-mistral-large3-plan",
+            provider="opencode",
+            description="Optional NVIDIA-routed Mistral Large 3 planner lane through opencode; requires configured nvidia provider credentials.",
+            model="nvidia/mistralai/mistral-large-3-675b-instruct-2512",
+            agent="plan",
+            plan=True,
+            thinking=False,
+            included_in_default_set=False,
+        ),
         "opencode-minimax-build-thinking": LanePreset(
             lane_id="opencode-minimax-build-thinking",
             provider="opencode",
@@ -141,6 +172,12 @@ def default_lane_ids() -> list[str]:
 def lane_set_catalog() -> dict[str, list[str]]:
     return {
         DEFAULT_LANE_SET_ID: default_lane_ids(),
+        RECOMMENDED_LANE_SET_ID: [
+            "opencode-minimax-plan",
+            "nvidia-glm51-plan",
+            "nvidia-devstral2-plan",
+            "nvidia-mistral-large3-plan",
+        ],
     }
 
 
@@ -175,12 +212,13 @@ def resolve_lane_selection(
 
 def render_lane_catalog() -> str:
     presets = list_lane_presets()
+    lane_sets = lane_set_catalog()
     lines = [
         "Lane sets:",
-        f"- {DEFAULT_LANE_SET_ID}: {', '.join(default_lane_ids())}",
-        "",
-        "Lane presets:",
     ]
+    for lane_set_id, lane_ids in lane_sets.items():
+        lines.append(f"- {lane_set_id}: {', '.join(lane_ids)}")
+    lines.extend(["", "Lane presets:"])
     for preset in presets.values():
         default_marker = " [default]" if preset.included_in_default_set else ""
         model = preset.model or "provider-default"
@@ -196,6 +234,7 @@ def render_lane_catalog() -> str:
             "",
             "CLI toggles:",
             "- /orch uses the default-planners lane set unless you pass --providers or --lanes.",
+            "- --lane-set recommended-planners selects MiniMax M2.5 plus the strongest verified NVIDIA planner lanes.",
             "- --lanes laneA,laneB selects explicit lanes.",
             "- iFlow lanes are explicit legacy/API-key lanes after the April 2026 CLI shutdown notice.",
             "- --providers claude,iflow,opencode keeps the legacy provider-only path.",
