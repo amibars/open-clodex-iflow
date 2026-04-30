@@ -51,6 +51,27 @@ def test_required_scaffold_files_exist():
     assert not missing, f"Missing scaffold files: {missing}"
 
 
+def test_public_release_docs_do_not_embed_local_absolute_paths():
+    root = Path(__file__).resolve().parents[2]
+    public_docs = [
+        root / "README.md",
+        root / "CONTRIBUTING.md",
+        root / "SECURITY.md",
+        root / "CODE_OF_CONDUCT.md",
+        root / "CHANGELOG.md",
+        root / "docs" / "releases" / "v0.1.0.md",
+    ]
+
+    offenders = [
+        str(path.relative_to(root))
+        for path in public_docs
+        if "C:/Projects/" in path.read_text(encoding="utf-8")
+        or "C:\\Projects\\" in path.read_text(encoding="utf-8")
+    ]
+
+    assert not offenders, f"Public release docs contain local absolute paths: {offenders}"
+
+
 def test_package_entrypoint_doctor_runs_with_src_pythonpath():
     root = Path(__file__).resolve().parents[2]
     env = os.environ.copy()

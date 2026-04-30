@@ -2,7 +2,7 @@
 
 ## Workflow
 
-1. Read [docs/START_HERE.md](/C:/Projects/open-clodex-iflow/docs/START_HERE.md) and [docs/READ_FIRST.md](/C:/Projects/open-clodex-iflow/docs/READ_FIRST.md).
+1. Read [docs/START_HERE.md](docs/START_HERE.md) and [docs/READ_FIRST.md](docs/READ_FIRST.md).
 2. Keep documentation, runtime behavior, and tests aligned.
 3. Add or update failing tests before changing behavior.
 4. Run `make check` before claiming the work is ready.

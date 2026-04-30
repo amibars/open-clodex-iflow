@@ -49,7 +49,7 @@ open-clodex-iflow orch "Review repository readiness" --mode headless
 open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-hy3-preview-plan-thinking --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-minimax-build-thinking --mode headless
-open-clodex-iflow scaffold C:\Projects\my-new-workspace
+open-clodex-iflow scaffold <target-workspace>
 ```
 
 The default `/orch` path now resolves a planner-oriented lane pack instead of a raw provider list. Today the default pack is intentionally narrow:
