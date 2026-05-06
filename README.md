@@ -22,6 +22,8 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 Live provider status is tracked in `docs/PROVIDER_COMPATIBILITY.md`.
 OpenCode lane benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`.
 Guide adaptation traceability and source-of-truth coverage are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
+External reuse research from GitHub stars is tracked in `docs/REUSE_RESEARCH_AUDIT.md`.
+Runtime expansion contracts are tracked in `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, and `docs/SECURITY_THREAT_MODEL.md`.
 `docs/PROVIDER_COMPATIBILITY.md` tracks the latest documented live evidence per provider, including blocked or synthetic-failure snapshots when no successful review completed.
 
 ## Install for local development
@@ -87,6 +89,10 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 - `docs/JTBD.md`
 - `docs/ORCHESTRATED.md`
 - `docs/OPENCODE_MODEL_BENCHMARK.md`
+- `docs/REUSE_RESEARCH_AUDIT.md`
+- `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
+- `docs/WINDOWED_RUNTIME_CONTRACT.md`
+- `docs/SECURITY_THREAT_MODEL.md`
 - `docs/ARCHITECTURE_BASELINE.md`
 - `docs/QUALITY_GATES.md`
 - `TASKS.md`

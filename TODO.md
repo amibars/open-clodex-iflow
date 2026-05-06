@@ -28,6 +28,7 @@
 - [x] Add richer tests and CI
 - [x] Re-run `claude` live compatibility after extra-usage reset and update `docs/PROVIDER_COMPATIBILITY.md`; runtime now uses a compact `claude` prompt plus `--no-session-persistence` and the latest headless smoke completed with `review_stage=runtime`
 - [x] Investigate the live `iflow` review-prompt contract after auth/discovery fixes; runtime now uses a compact `iflow` prompt plus `--stream false` and the latest headless smoke completed with `review_stage=runtime`
+- [x] Add reuse research audit for relevant GitHub-starred orchestration, memory, routing, security, and observability projects
 
 ## Guide adaptation deltas
 
@@ -35,4 +36,11 @@
 - [x] Pre-commit is documented as a minimum critical guardrail, while full verification remains `make check` + CI.
 - [x] Runtime baseline is explicitly scoped to sequential `/orch`; parallel/debate lanes are out of current v1 scope.
 - [x] Provider compatibility wording distinguishes adapter support from environment-dependent live success.
-- [ ] Every change to guide-derived docs/process must update `README.md`, `docs/START_HERE.md`, `docs/QUALITY_GATES.md`, `docs/GUIDE_TRACEABILITY_AUDIT.md`, and `docs/PROVIDER_COMPATIBILITY.md` in the same change set.
+- [ ] Standing rule: every change to guide-derived docs/process must update or explicitly mark unchanged `README.md`, `docs/START_HERE.md`, `docs/QUALITY_GATES.md`, `docs/GUIDE_TRACEABILITY_AUDIT.md`, and `docs/PROVIDER_COMPATIBILITY.md` in the same change set.
+
+## Deferred reuse follow-ups
+
+- [x] Add `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md` before implementing true parallel fan-out.
+- [x] Add `docs/WINDOWED_RUNTIME_CONTRACT.md` before claiming dedicated OS-window worker lanes.
+- [x] Add `docs/SECURITY_THREAT_MODEL.md` before enabling memory/MCP/plugin-style expansion by default.
+- [ ] Add a generated-pack manifest/health-check loop before expanding scaffold/reviewer packs.

@@ -26,6 +26,8 @@ The most security-sensitive surfaces in this repo are:
 - subprocess execution and prompt handoff
 - secret scanning and enforcement tooling
 
+The working threat model is maintained in `docs/SECURITY_THREAT_MODEL.md`. Update that document before enabling memory, MCP, plugin hooks, broader auth/session access, or dedicated OS-window execution by default.
+
 ## Expectations
 
 - give enough evidence to reproduce

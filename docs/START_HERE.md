@@ -11,8 +11,10 @@
 1. Прочитать [`docs/READ_FIRST.md`](./READ_FIRST.md) и зафиксировать продуктовые решения до изменения runtime.
 2. Прочитать [`docs/PRD.md`](./PRD.md), [`docs/ARCH_SPEC.md`](./ARCH_SPEC.md) и [`docs/ORCHESTRATED.md`](./ORCHESTRATED.md), чтобы не спорить о контракте посреди реализации.
 3. Проверить роли и границы в [`docs/AGENTS.md`](./AGENTS.md), [`docs/SKILLS.md`](./SKILLS.md) и [`reviewer.md`](../reviewer.md).
-4. Проверить quality gates в [`docs/QUALITY_GATES.md`](./QUALITY_GATES.md) и выполнить `make check`.
-5. Только после зеленых gates расширять runtime behavior или adapter layer.
+4. Если меняется runtime/orchestration scope на базе внешних проектов, прочитать [`docs/REUSE_RESEARCH_AUDIT.md`](./REUSE_RESEARCH_AUDIT.md) и явно отделить reference ideas от code reuse.
+5. Если меняются timeout/retry, windowed behavior, provider subprocesses, memory, MCP или plugin-style expansion, прочитать соответствующие контракты: [`docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`](./ATTEMPT_TIMEOUT_RETRY_CONTRACT.md), [`docs/WINDOWED_RUNTIME_CONTRACT.md`](./WINDOWED_RUNTIME_CONTRACT.md), [`docs/SECURITY_THREAT_MODEL.md`](./SECURITY_THREAT_MODEL.md).
+6. Проверить quality gates в [`docs/QUALITY_GATES.md`](./QUALITY_GATES.md) и выполнить `make check`.
+7. Только после зеленых gates расширять runtime behavior или adapter layer.
 
 ---
 
@@ -55,6 +57,10 @@
 - `docs/ORCHESTRATED.md`
 - `docs/ARCHITECTURE_BASELINE.md`
 - `docs/QUALITY_GATES.md`
+- `docs/REUSE_RESEARCH_AUDIT.md`
+- `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
+- `docs/WINDOWED_RUNTIME_CONTRACT.md`
+- `docs/SECURITY_THREAT_MODEL.md`
 - `docs/JTBD.md`
 - `TASKS.md`
 - `TODO.md`

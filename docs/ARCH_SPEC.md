@@ -65,7 +65,8 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
 **Consequences:**
 
 - ✅ Better operator observability
-- ⚠️ Requires window-spawn handling to be first-class on Windows
+- ⚠️ Current v1 `windowed` means operator-visible sequential execution in the current terminal flow
+- ⚠️ Dedicated OS-window spawning is a future backend and must satisfy `docs/WINDOWED_RUNTIME_CONTRACT.md` before it is claimed as implemented
 
 ---
 
@@ -145,7 +146,10 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
 - `/solo` writes only `artifact.json`
 - `/orch` writes `artifact.json`, per-provider `review.json`, `session.log`, and `consolidated_review.json`
 - runtime is sequential and uses only runnable providers with explicit adapter support
-- custom API/base URL overrides remain out of scope for the current slice
+- provider timeouts and synthetic failures must preserve inspectable evidence according to `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
+- current `windowed` behavior is defined by `docs/WINDOWED_RUNTIME_CONTRACT.md` and does not claim dedicated OS windows per lane
+- explicit provider override config exists for local command/env/base URL configuration
+- full API bridge/server mode remains out of scope for the current slice
 
 ---
 

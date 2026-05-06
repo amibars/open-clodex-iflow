@@ -57,6 +57,9 @@
 - For `iflow`, planner presets also depend on the selected model honoring `--plan` and, optionally, `--thinking`; the CLI does not expose a model capability matrix, so those toggles are best-effort outside the documented local smokes.
 - For `opencode`, planner/build lane selection now depends on `--agent plan|build` rather than TUI-only mode selection.
 - Presence of `review.json`, `session.log`, `stdout.txt`, or other artifacts alone is not evidence of provider success; success requires a normalized provider review with `review_stage=runtime`.
+- Timeout behavior must follow `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`: partial output is evidence to preserve, not a valid provider review by itself.
+- `windowed` provider compatibility means current operator-visible sequential execution unless `docs/WINDOWED_RUNTIME_CONTRACT.md` is updated with a proven dedicated-window backend.
+- Any provider integration that adds MCP, memory, plugin hooks, or broader auth/session access must update `docs/SECURITY_THREAT_MODEL.md` before being treated as default-supported.
 
 ## How to self-check a provider on this machine
 

@@ -36,6 +36,7 @@
 - TASKS exists
 - first epic and first story exist
 - traceability audit is updated when guide-derived artifacts changed
+- reuse research and runtime expansion contracts exist before runtime scope expands
 
 ### Traceability gate
 
@@ -43,6 +44,8 @@
 - matrix status matches the current repo state
 - explicit repo-native deltas vs guide are documented
 - if a guide-derived artifact changes, the audit is updated in the same change set
+- if external reuse changes runtime scope, `docs/REUSE_RESEARCH_AUDIT.md` is updated or explicitly marked unchanged
+- if timeout/retry, windowed behavior, provider subprocess authority, memory, MCP, or plugin expansion changes, the relevant runtime/security contract is updated in the same change set
 
 ### Local fast gate
 
@@ -74,5 +77,6 @@
 - all unit and integration smoke tests green
 - story validator green
 - standalone skeleton tester green
+- runtime expansion docs exist: `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, `docs/SECURITY_THREAT_MODEL.md`
 - `pre-commit` config exists and locks in the minimum critical enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`)
 - `.github/workflows/ci.yml` is not weaker than the local full gate contract and makes the role split explicit: Windows is primary product truth, Ubuntu is secondary guardrail

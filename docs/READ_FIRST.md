@@ -41,7 +41,7 @@
 
 1. Что именно меняется: discovery, adapter execution, packet schema или aggregation?
 2. Какая privacy boundary затронута: `/solo`, `/orch`, custom API override или human gate?
-3. Какие docs надо обновить вместе с кодом: `PRD`, `ARCH_SPEC`, `ORCHESTRATED`, `QUALITY_GATES`, `TASKS`?
+3. Какие docs надо обновить вместе с кодом: `PRD`, `ARCH_SPEC`, `ORCHESTRATED`, `QUALITY_GATES`, `TASKS`, runtime/security contracts?
 4. Какие tests доказывают change: unit, integration, skeleton, contract smoke?
 5. Остается ли поведение пригодным для open-source публикации без скрытого локального знания?
 
@@ -53,3 +53,4 @@
 - стабильная стратегия запуска provider workers на Windows TTY/GUI
 - explicit policy для custom API/base URL overrides
 - trace/log format для multi-provider execution
+- generated-pack manifest/health-check loop before expanding scaffold/reviewer packs

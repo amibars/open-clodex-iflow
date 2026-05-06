@@ -93,7 +93,9 @@
 - no raw chat history handoff; only structured packets
 - no silent downgrade from `/orch` to `/solo`
 - no hidden reviewer with write authority over repo truth
-- `windowed` means operator-visible execution; `headless` means capture-only execution
+- `windowed` means operator-visible sequential execution in the current terminal flow; dedicated OS-window lanes require `docs/WINDOWED_RUNTIME_CONTRACT.md` compliance before being claimed
+- `headless` means capture-first execution without the current terminal as the primary review surface
+- timeout and retry semantics are governed by `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
 - `iflow` lane presets request `--plan`; `--thinking` is best-effort because `iflow` only enables it when the selected model supports it
 - OpenCode benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`; TUI-only models are not defaults until their CLI ids and non-interactive behavior are verified
 - NVIDIA lane presets are routed through OpenCode and require an OpenCode `nvidia` provider config plus `NVIDIA_API_KEY`; they replace iFlow in the recommended planner set, not in the legacy adapter layer
@@ -108,6 +110,7 @@
 - `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run
 - current live compatibility is versioned in `docs/PROVIDER_COMPATIBILITY.md`
+- dedicated OS-window spawning, parallel debate, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
 
 ---
 
