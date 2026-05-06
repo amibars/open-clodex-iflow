@@ -178,7 +178,7 @@ These are the next useful docs/tasks before expanding runtime scope:
    Cover CLI reuse, OAuth/auth-state boundaries, provider subprocesses, prompt injection, MCP/plugin risks, and memory risks.
 
 4. Add a generated-pack health check.
-   Use a Harmonist-style manifest/check loop for scaffold templates and reviewer/lane packs.
+   Current status: implemented for scaffold templates through `docs/GENERATED_PACK_MANIFEST.json` and `scripts/check_generated_pack.py`. Future reviewer/lane packs should use the same pattern before expansion.
 
 5. Keep `CLIProxyAPI` as optional backend research.
    Do not merge API proxy scope into v1 until the local CLI path is stable.

@@ -1,0 +1,163 @@
+{
+  "canonical_project_name": "Manifest Project",
+  "file_count": 31,
+  "files": [
+    {
+      "bytes": 48,
+      "path": ".gitignore",
+      "sha256": "198856a658efffce724eeb62de21f0cb10856c15ed67fc0232f23531d7ed8ccb"
+    },
+    {
+      "bytes": 173,
+      "path": "CHANGELOG.md",
+      "sha256": "062799446dde8a02f4dced60e010db6c082ae70fa3003650af803eddc9cb878a"
+    },
+    {
+      "bytes": 216,
+      "path": "CODE_OF_CONDUCT.md",
+      "sha256": "76e825305cc6d22161cbe8aa36650951b24b608ac75fbb8922d0132bdbbe98b6"
+    },
+    {
+      "bytes": 323,
+      "path": "CONTRIBUTING.md",
+      "sha256": "d3fe6080f80beee44993d1d02d23d5b700bcef0fcc9a1e04d97c97c3d6026e63"
+    },
+    {
+      "bytes": 69,
+      "path": "HABIT_TRACKER.md",
+      "sha256": "fae603fbdc680a0fd245ea1d5ae688ce0690084308d99edd463a2fb0ea14d4a9"
+    },
+    {
+      "bytes": 1056,
+      "path": "LICENSE",
+      "sha256": "1126322e2cc8d165adc4c792eeb195717de2bcc7b39be1ce77959d78e87ef685"
+    },
+    {
+      "bytes": 147,
+      "path": "Makefile",
+      "sha256": "38f18033105ebbc1633f832f0332645a4513d5cf18c4a2d7daa2960a717f34e3"
+    },
+    {
+      "bytes": 138,
+      "path": "README.md",
+      "sha256": "8fc9148bdb879b3398bd89b43393f997c454a4e7421e783320010dfb2603ca5c"
+    },
+    {
+      "bytes": 318,
+      "path": "SECURITY.md",
+      "sha256": "0751b7e2650ad2afa6a8bcfa619af0e549f2fa989c39384914ca076a9800690c"
+    },
+    {
+      "bytes": 136,
+      "path": "TASKS.md",
+      "sha256": "dd850faaba3b2b538e503f87fb12ffbac7973c10c1fc5da6908c90c9ec75196f"
+    },
+    {
+      "bytes": 84,
+      "path": "TODO.md",
+      "sha256": "b31485d265d4ff38be7e3c360cb1e5ab10d45f8583d31f8e8b75ce87ea7e98e4"
+    },
+    {
+      "bytes": 62,
+      "path": "docs/AGENTS.md",
+      "sha256": "ce614dee562fbe10e1330df314da97b6c1d4737f4b78f04ef0282487a1898419"
+    },
+    {
+      "bytes": 116,
+      "path": "docs/AI_PROJECT_CHECKLIST.md",
+      "sha256": "21730f528a2b11b8071e052b20a8fa0da3cb8b85334a1d710cda9e002248a935"
+    },
+    {
+      "bytes": 152,
+      "path": "docs/ARCHITECTURE_BASELINE.md",
+      "sha256": "0348c850a5a22372376f53561e682a8d21196a5ee9cbd205ef34b6259de852f2"
+    },
+    {
+      "bytes": 57,
+      "path": "docs/ARCH_SPEC.md",
+      "sha256": "8069206b1109374d079342dcdac7bbcaf9d782956fee9679acb9847eab7db6f0"
+    },
+    {
+      "bytes": 147,
+      "path": "docs/EXECUTION_PRINCIPLES.md",
+      "sha256": "0eb73ec8dce2c2c211a0c13228cf01f6ea1abf576ceada5a465812e12e2c31dd"
+    },
+    {
+      "bytes": 159,
+      "path": "docs/JTBD.md",
+      "sha256": "640343bd49095b94cfdf00809f5a619d10dfb0cc0fc308a74fe664e25e2df291"
+    },
+    {
+      "bytes": 115,
+      "path": "docs/ORCHESTRATED.md",
+      "sha256": "d7fdf9fe0ee5f92ffe0228712f7ee40692000be6acd26f067ee123cfd0525804"
+    },
+    {
+      "bytes": 44,
+      "path": "docs/PRD.md",
+      "sha256": "4b847bbc3c9344527f09dae2291ace52ae340d5e064028addb4530975f1084ff"
+    },
+    {
+      "bytes": 127,
+      "path": "docs/QUALITY_GATES.md",
+      "sha256": "2db5781232523dd16b6b8486389367a7690be923ba415a2c32a43e72c579b274"
+    },
+    {
+      "bytes": 109,
+      "path": "docs/READ_FIRST.md",
+      "sha256": "f3799df01a76035aaf6f2bcd08ec7989b88313ac27999af8dc5e273a3b3cd2f0"
+    },
+    {
+      "bytes": 73,
+      "path": "docs/SKILLS.md",
+      "sha256": "be286b10fe7a0f4d713a913abb116517c915148aafb7d4aee5c139150a4c3f47"
+    },
+    {
+      "bytes": 109,
+      "path": "docs/START_HERE.md",
+      "sha256": "22209aba210e775f3c29b86372fca8c1c78acec95b7598a632543357f79202b5"
+    },
+    {
+      "bytes": 165,
+      "path": "docs/releases/v0.1.0.md",
+      "sha256": "5a43fd0399d3c93591ec3718bdfc6ca83ad000a2959ade4706ff15e10469d66a"
+    },
+    {
+      "bytes": 0,
+      "path": "enforcement/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 261,
+      "path": "pyproject.toml",
+      "sha256": "8b423769c8adf81b8a010cbb3aa0388b3871d579514d3b5e57c4d46f21e01601"
+    },
+    {
+      "bytes": 0,
+      "path": "scripts/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 88,
+      "path": "tasks/epics/epic-1-bootstrap-manifest-project.md",
+      "sha256": "e87ff3246faa1e94f4cc2ef920e4356d47ff545628614598f0b6bbf9f7a42752"
+    },
+    {
+      "bytes": 520,
+      "path": "tasks/stories/1.1-repo-bootstrap.story.md",
+      "sha256": "af536045121b86a1ab47cebe08a72013f4ab51fc26c72fe345bf55569cc24af0"
+    },
+    {
+      "bytes": 0,
+      "path": "tests/integration/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "tests/unit/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "generator": "open_clodex_iflow.scaffold.bootstrap.render_templates",
+  "schema_version": 1
+}

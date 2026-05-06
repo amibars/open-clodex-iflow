@@ -21,6 +21,11 @@ repos:
         entry: python scripts/validate_story.py --all
         language: system
         pass_filenames: false
+      - id: generated-pack
+        name: generated pack manifest
+        entry: python scripts/check_generated_pack.py
+        language: system
+        pass_filenames: false
       - id: secret-scan
         name: secret scan
         entry: python enforcement/secret_scan.py

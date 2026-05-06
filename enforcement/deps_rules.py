@@ -35,6 +35,7 @@ REQUIRED_PATHS = [
     "docs/ARCH_SPEC.md",
     "docs/ARCHITECTURE_BASELINE.md",
     "docs/QUALITY_GATES.md",
+    "docs/GENERATED_PACK_MANIFEST.json",
     "docs/REUSE_RESEARCH_AUDIT.md",
     "docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md",
     "docs/WINDOWED_RUNTIME_CONTRACT.md",
@@ -51,6 +52,7 @@ REQUIRED_PATHS = [
     ".github/workflows/ci.yml",
     "enforcement/tdd_guard.py",
     "enforcement/tdd_guard.json",
+    "scripts/check_generated_pack.py",
     "skeleton-tester/README.md",
 ]
 

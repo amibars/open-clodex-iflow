@@ -75,6 +75,12 @@
       ]
     },
     {
+      "source": "scripts/check_generated_pack.py",
+      "tests": [
+        "tests/unit/test_generated_pack.py"
+      ]
+    },
+    {
       "source": "scripts/run_skeleton_tester.py",
       "tests": [
         "tests/unit/test_skeleton_tester.py"

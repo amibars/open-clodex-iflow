@@ -49,6 +49,7 @@ jobs:
           python enforcement/deps_rules.py
           python enforcement/tdd_guard.py
           python scripts/validate_story.py --all
+          python scripts/check_generated_pack.py
           python -m pytest tests/unit tests/integration -q
           python enforcement/secret_scan.py
 

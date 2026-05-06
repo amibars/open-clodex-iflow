@@ -43,4 +43,4 @@
 - [x] Add `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md` before implementing true parallel fan-out.
 - [x] Add `docs/WINDOWED_RUNTIME_CONTRACT.md` before claiming dedicated OS-window worker lanes.
 - [x] Add `docs/SECURITY_THREAT_MODEL.md` before enabling memory/MCP/plugin-style expansion by default.
-- [ ] Add a generated-pack manifest/health-check loop before expanding scaffold/reviewer packs.
+- [x] Add a generated-pack manifest/health-check loop before expanding scaffold/reviewer packs.

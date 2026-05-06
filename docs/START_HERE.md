@@ -24,6 +24,7 @@
 
 - `make lint`
 - `make enforce`
+- `make generated-pack`
 - `make tdd`
 - `make test-unit`
 - `make test-integration`
@@ -32,7 +33,7 @@
 
 ### Layer 2: pre-commit minimum guardrail
 
-- `.pre-commit-config.yaml` содержит минимальный набор критических enforcement-скриптов (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `enforcement/secret_scan.py`) для быстрого локального отсева.
+- `.pre-commit-config.yaml` содержит минимальный набор критических enforcement-скриптов (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `scripts/check_generated_pack.py`, `enforcement/secret_scan.py`) для быстрого локального отсева.
 - Этот слой намеренно уже, чем полный gate (`make check` + CI), и не должен описываться как полная эквивалентность всех проверок.
 - Если меняется критический enforcement-скрипт или добавляется новый обязательный guard, обновляйте `pre-commit` в том же change set.
 
@@ -57,6 +58,7 @@
 - `docs/ORCHESTRATED.md`
 - `docs/ARCHITECTURE_BASELINE.md`
 - `docs/QUALITY_GATES.md`
+- `docs/GENERATED_PACK_MANIFEST.json`
 - `docs/REUSE_RESEARCH_AUDIT.md`
 - `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
 - `docs/WINDOWED_RUNTIME_CONTRACT.md`
