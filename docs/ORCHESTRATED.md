@@ -111,7 +111,7 @@
 - `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run
 - current live compatibility is versioned in `docs/PROVIDER_COMPATIBILITY.md`
-- dedicated OS-window spawning, parallel debate, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
+- parallel fan-out/debate, dedicated OS-window spawning, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
 
 ---
 

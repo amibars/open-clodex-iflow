@@ -60,6 +60,7 @@
 - Timeout behavior must follow `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`: partial output is evidence to preserve, not a valid provider review by itself.
 - `windowed` provider compatibility means current operator-visible sequential execution unless `docs/WINDOWED_RUNTIME_CONTRACT.md` is updated with a proven dedicated-window backend.
 - Any provider integration that adds MCP, memory, plugin hooks, or broader auth/session access must update `docs/SECURITY_THREAT_MODEL.md` before being treated as default-supported.
+- Parallel fan-out does not change provider success interpretation: each lane still needs its own valid `review.json` with `review_stage=runtime`.
 
 ## How to self-check a provider on this machine
 

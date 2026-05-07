@@ -24,6 +24,7 @@ OpenCode lane benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md
 Guide adaptation traceability and source-of-truth coverage are tracked in `docs/GUIDE_TRACEABILITY_AUDIT.md`.
 External reuse research from GitHub stars is tracked in `docs/REUSE_RESEARCH_AUDIT.md`.
 Runtime expansion contracts are tracked in `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, and `docs/SECURITY_THREAT_MODEL.md`.
+Parallel fan-out requirements are tracked in `docs/PARALLEL_FANOUT_CONTRACT.md`.
 Generated scaffold pack integrity is tracked in `docs/GENERATED_PACK_MANIFEST.json` and checked by `make generated-pack`.
 `docs/PROVIDER_COMPATIBILITY.md` tracks the latest documented live evidence per provider, including blocked or synthetic-failure snapshots when no successful review completed.
 
@@ -92,6 +93,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 - `docs/OPENCODE_MODEL_BENCHMARK.md`
 - `docs/GENERATED_PACK_MANIFEST.json`
 - `docs/REUSE_RESEARCH_AUDIT.md`
+- `docs/PARALLEL_FANOUT_CONTRACT.md`
 - `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
 - `docs/WINDOWED_RUNTIME_CONTRACT.md`
 - `docs/SECURITY_THREAT_MODEL.md`

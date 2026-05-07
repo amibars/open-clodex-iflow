@@ -46,7 +46,7 @@
 - explicit repo-native deltas vs guide are documented
 - if a guide-derived artifact changes, the audit is updated in the same change set
 - if external reuse changes runtime scope, `docs/REUSE_RESEARCH_AUDIT.md` is updated or explicitly marked unchanged
-- if timeout/retry, windowed behavior, provider subprocess authority, memory, MCP, or plugin expansion changes, the relevant runtime/security contract is updated in the same change set
+- if fan-out/debate, timeout/retry, windowed behavior, provider subprocess authority, memory, MCP, or plugin expansion changes, the relevant runtime/security contract is updated in the same change set
 - if scaffold templates change, `docs/GENERATED_PACK_MANIFEST.json` is updated intentionally and `make generated-pack` passes
 
 ### Local fast gate
@@ -82,6 +82,6 @@
 - generated pack manifest checker green
 - standalone skeleton tester green
 - `docs/GENERATED_PACK_MANIFEST.json` matches `src/open_clodex_iflow/scaffold/bootstrap.py`
-- runtime expansion docs exist: `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, `docs/SECURITY_THREAT_MODEL.md`
+- runtime expansion docs exist: `docs/PARALLEL_FANOUT_CONTRACT.md`, `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, `docs/SECURITY_THREAT_MODEL.md`
 - `pre-commit` config exists and locks in the minimum critical enforcement scripts (`ruff check`, `enforcement/deps_rules.py`, `enforcement/tdd_guard.py`, `scripts/validate_story.py --all`, `scripts/check_generated_pack.py`, `enforcement/secret_scan.py`)
 - `.github/workflows/ci.yml` is not weaker than the local full gate contract and makes the role split explicit: Windows is primary product truth, Ubuntu is secondary guardrail

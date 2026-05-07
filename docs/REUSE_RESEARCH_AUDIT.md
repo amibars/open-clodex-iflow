@@ -195,7 +195,7 @@ These are the next useful docs/tasks before expanding runtime scope:
 - No implicit API server.
 - No automatic installation of memory hooks or MCP servers.
 - No claim that current `windowed` equals dedicated external OS panes.
-- No parallel debate loop until message, attempt, timeout, and aggregation contracts are written.
+- No parallel debate loop until message, attempt, timeout, fan-out, and aggregation contracts are written.
 
 ## Source Notes
 

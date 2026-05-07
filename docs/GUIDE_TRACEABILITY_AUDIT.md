@@ -20,7 +20,7 @@
 
 README.md, TODO.md и этот audit теперь формируют единую authoritative snapshot, который описывает, какие адаптации уже сделаны и как repo-native baseline соотносится с guide без притворства о verbatim copy.
 
-External reuse research and runtime-expansion guardrails are tracked separately in `docs/REUSE_RESEARCH_AUDIT.md`, `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, and `docs/SECURITY_THREAT_MODEL.md`. These files are not verbatim Iron Dome guide files; they are repo-native controls added after the GitHub-stars reuse audit to prevent scope expansion without docs/process truth.
+External reuse research and runtime-expansion guardrails are tracked separately in `docs/REUSE_RESEARCH_AUDIT.md`, `docs/PARALLEL_FANOUT_CONTRACT.md`, `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, and `docs/SECURITY_THREAT_MODEL.md`. These files are not verbatim Iron Dome guide files; they are repo-native controls added after the GitHub-stars reuse audit to prevent scope expansion without docs/process truth.
 
 ---
 
@@ -108,7 +108,7 @@ External reuse research and runtime-expansion guardrails are tracked separately 
 | Runtime orchestration scope | Broader orchestration pattern in guide discussions | Current baseline is sequential `/orch` without parallel debate loop and without dedicated OS-window lanes | accepted product scope limit |
 | Provider live behavior claims | Stable live success may be implied by adapter presence | Adapter support exists in code; live success remains environment-dependent and must be confirmed by smoke runs | accepted runtime constraint |
 | External reuse research | Guide emphasizes reuse and source-of-truth discipline but does not define these specific third-party projects | `docs/REUSE_RESEARCH_AUDIT.md` records evaluated references and separates ideas from code reuse/licensing | accepted repo extension |
-| Runtime expansion contracts | Guide requires process discipline before build loop changes | `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, and `docs/SECURITY_THREAT_MODEL.md` gate fan-out, dedicated windows, memory, MCP, and plugin-style expansion | accepted repo extension |
+| Runtime expansion contracts | Guide requires process discipline before build loop changes | `docs/PARALLEL_FANOUT_CONTRACT.md`, `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`, `docs/WINDOWED_RUNTIME_CONTRACT.md`, and `docs/SECURITY_THREAT_MODEL.md` gate fan-out, dedicated windows, memory, MCP, and plugin-style expansion | accepted repo extension |
 
 ---
 
@@ -116,4 +116,4 @@ External reuse research and runtime-expansion guardrails are tracked separately 
 
 1. Keep this matrix and delta register versioned; update both whenever guide-derived artifacts or gate semantics change.
 2. Treat undocumented docs/runtime divergence as process debt and classify it explicitly (`accepted adaptation` or `needs remediation`) in the same change set.
-3. Treat external-reuse-driven runtime expansion as blocked until the relevant reuse, timeout/windowed, and security contracts are updated or explicitly marked unchanged.
+3. Treat external-reuse-driven runtime expansion as blocked until the relevant reuse, fan-out, timeout/windowed, and security contracts are updated or explicitly marked unchanged.

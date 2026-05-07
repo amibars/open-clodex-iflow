@@ -91,7 +91,7 @@
 ### Next implementation slice
 
 - [x] dedicated window vs visible sequential boundary зафиксирован как stable contract
-- [ ] parallel fan-out/debate policy зафиксирована до реализации
+- [x] parallel fan-out/debate policy зафиксирована до реализации
 - [ ] dedicated window backend implementation покрыт тестами до release claim
 - [ ] custom API/base URL override покрыт тестами
 - [ ] live provider compatibility matrix подтверждена для всех supported CLIs
