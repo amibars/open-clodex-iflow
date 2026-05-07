@@ -9,8 +9,15 @@ import threading
 import time
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
+from uuid import uuid4
 
-from open_clodex_iflow.contracts import ArtifactPacket, ProviderReview, write_json
+from open_clodex_iflow.contracts import (
+    ArtifactPacket,
+    AttemptRecord,
+    ProviderReview,
+    utc_now_iso,
+    write_json,
+)
 from open_clodex_iflow.lanes import LanePreset
 
 RUNTIME_PROVIDERS = ("claude", "iflow", "opencode")
@@ -373,6 +380,73 @@ def synthetic_failure_review(
     )
 
 
+def lane_id_for(provider: str, lane: LanePreset | None = None) -> str:
+    return lane.lane_id if lane else provider
+
+
+def lane_mode_for(lane: LanePreset | None = None) -> str:
+    if lane and lane.agent:
+        return lane.agent
+    if lane and lane.plan:
+        return "plan"
+    return "provider-default"
+
+
+def redact_command_shape(command: list[str], prompt: str) -> list[str]:
+    return [
+        "<review-prompt-redacted>" if item == prompt else item
+        for item in command
+    ]
+
+
+def write_attempt_record(
+    path: Path,
+    *,
+    artifact: ArtifactPacket,
+    provider: str,
+    lane: LanePreset | None,
+    runtime_mode: str,
+    state: str,
+    started_at: str,
+    timeout_seconds: int,
+    process_terminated: bool,
+    exit_code: int | None,
+    stdout_path: Path,
+    stderr_path: Path,
+    raw_output_path: Path,
+    review_path: Path,
+    command_shape: list[str],
+    cwd: Path,
+    retryable: bool = False,
+    operator_inspection_hint: str = "",
+) -> AttemptRecord:
+    record = AttemptRecord(
+        attempt_id=f"attempt-{uuid4().hex[:12]}",
+        trace_id=artifact.trace_id,
+        lane_id=lane_id_for(provider, lane),
+        provider=provider,
+        model=lane.model if lane else None,
+        mode=lane_mode_for(lane),
+        runtime_mode=runtime_mode,
+        state=state,
+        started_at=started_at,
+        ended_at=utc_now_iso(),
+        timeout_seconds=timeout_seconds,
+        process_terminated=process_terminated,
+        exit_code=exit_code,
+        stdout_tail_file=str(stdout_path),
+        stderr_tail_file=str(stderr_path),
+        raw_output_file=str(raw_output_path),
+        review_file=str(review_path),
+        retryable=retryable,
+        operator_inspection_hint=operator_inspection_hint,
+        command_shape=command_shape,
+        cwd=str(cwd),
+    )
+    write_json(path, record)
+    return record
+
+
 def execute_headless(
     provider: str,
     *,
@@ -496,6 +570,7 @@ def run_provider_review(
     stderr_path = output_dir / "stderr.txt"
     raw_output_path = output_dir / "raw_output.txt"
     review_path = output_dir / "review.json"
+    attempt_path = output_dir / "attempt.json"
     project_root = Path.cwd()
     provider_workdir = execution_workdir(provider, output_dir, project_root)
 
@@ -511,6 +586,7 @@ def run_provider_review(
         python_executable=python_executable,
         lane=lane,
     )
+    command_shape = redact_command_shape(command, prompt)
     runner = select_runner(runtime_mode)
     extra_env = provider_runtime_env(provider, metadata)
     if provider_override:
@@ -518,6 +594,7 @@ def run_provider_review(
         if isinstance(env_map, dict):
             extra_env.update({str(key): str(value) for key, value in env_map.items()})
 
+    started_at = utc_now_iso()
     try:
         return_code, stdout_text, stderr_text = runner(
             provider,
@@ -567,6 +644,28 @@ def run_provider_review(
                 f"{timeout_note}; using the last valid payload emitted before process exit."
             )
             write_json(review_path, review)
+            write_attempt_record(
+                attempt_path,
+                artifact=artifact,
+                provider=provider,
+                lane=lane,
+                runtime_mode=runtime_mode,
+                state="timeout_incomplete",
+                started_at=started_at,
+                timeout_seconds=timeout_seconds,
+                process_terminated=True,
+                exit_code=None,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                raw_output_path=raw_output_path,
+                review_path=review_path,
+                command_shape=command_shape,
+                cwd=provider_workdir,
+                operator_inspection_hint=(
+                    "Provider timed out after emitting a valid review; inspect partial output "
+                    "before treating the lane as fully stable."
+                ),
+            )
             return review
         except ValueError:
             pass
@@ -579,6 +678,28 @@ def run_provider_review(
             lane=lane,
         )
         write_json(review_path, review)
+        write_attempt_record(
+            attempt_path,
+            artifact=artifact,
+            provider=provider,
+            lane=lane,
+            runtime_mode=runtime_mode,
+            state="timeout_incomplete",
+            started_at=started_at,
+            timeout_seconds=timeout_seconds,
+            process_terminated=True,
+            exit_code=None,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            raw_output_path=raw_output_path,
+            review_path=review_path,
+            command_shape=command_shape,
+            cwd=provider_workdir,
+            operator_inspection_hint=(
+                "Provider timed out before producing a valid review; inspect stdout/stderr "
+                "and raw output before retrying."
+            ),
+        )
         return review
 
     source_text = stdout_text
@@ -598,6 +719,25 @@ def run_provider_review(
             lane=lane,
         )
         write_json(review_path, review)
+        write_attempt_record(
+            attempt_path,
+            artifact=artifact,
+            provider=provider,
+            lane=lane,
+            runtime_mode=runtime_mode,
+            state="failed",
+            started_at=started_at,
+            timeout_seconds=timeout_seconds,
+            process_terminated=False,
+            exit_code=return_code,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            raw_output_path=raw_output_path,
+            review_path=review_path,
+            command_shape=command_shape,
+            cwd=provider_workdir,
+            operator_inspection_hint="Provider exited non-zero; inspect stdout/stderr and raw output.",
+        )
         return review
 
     try:
@@ -622,6 +762,46 @@ def run_provider_review(
             log_file=stdout_path,
             lane=lane,
         )
+        write_json(review_path, review)
+        write_attempt_record(
+            attempt_path,
+            artifact=artifact,
+            provider=provider,
+            lane=lane,
+            runtime_mode=runtime_mode,
+            state="invalid_output",
+            started_at=started_at,
+            timeout_seconds=timeout_seconds,
+            process_terminated=False,
+            exit_code=return_code,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            raw_output_path=raw_output_path,
+            review_path=review_path,
+            command_shape=command_shape,
+            cwd=provider_workdir,
+            operator_inspection_hint="Provider output was captured but did not match review.json contract.",
+        )
+        return review
 
     write_json(review_path, review)
+    write_attempt_record(
+        attempt_path,
+        artifact=artifact,
+        provider=provider,
+        lane=lane,
+        runtime_mode=runtime_mode,
+        state="completed",
+        started_at=started_at,
+        timeout_seconds=timeout_seconds,
+        process_terminated=False,
+        exit_code=return_code,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        raw_output_path=raw_output_path,
+        review_path=review_path,
+        command_shape=command_shape,
+        cwd=provider_workdir,
+        operator_inspection_hint="Provider completed with a valid normalized review.",
+    )
     return review

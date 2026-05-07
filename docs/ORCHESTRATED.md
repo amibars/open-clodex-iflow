@@ -18,7 +18,7 @@
 
 - Codex remains control plane
 - runtime slice sends packet to the runnable reviewer pool through provider adapters
-- writes per-provider `review.json`, raw outputs, and one consolidated review
+- writes per-provider `attempt.json`, `review.json`, raw outputs, and one consolidated review
 - default runtime mode: `windowed`
 - optional runtime mode: `headless`
 - default lane set: `default-planners`
@@ -57,6 +57,7 @@
 ## Artifact contract
 
 - `artifact.json`: source task, privacy boundary, runtime mode, provider snapshot, intended next step
+- `attempt.json`: one provider execution attempt, state, command shape, timeout facts, exit code, and evidence paths
 - `review.json`: one reviewer’s findings, verdict, confidence, missing evidence
 - `consolidated_review.json`: grouped findings, final verdict, recommended next action
 

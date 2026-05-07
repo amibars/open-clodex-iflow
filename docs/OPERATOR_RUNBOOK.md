@@ -111,6 +111,14 @@ Each run writes:
 - `session.log`
 - one directory per executed lane under `providers/<lane-id>/`
 
+Each executed lane directory contains:
+
+- `attempt.json`
+- `review.json`
+- `raw_output.txt`
+- `stdout.txt`
+- `stderr.txt`
+
 Treat a lane as genuinely successful only if its `review.json` shows:
 
 - `review_stage = runtime`

@@ -14,7 +14,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 ## Commands
 
 - `solo`: private work mode that writes a local `artifact.json` packet and never fans out
-- `orch`: sequential runtime orchestration that writes `artifact.json`, per-provider `review.json`, `session.log`, and `consolidated_review.json`
+- `orch`: sequential runtime orchestration that writes `artifact.json`, per-lane `attempt.json` and `review.json`, `session.log`, and `consolidated_review.json`
 - `lanes`: inspect default lane presets, optional lanes, and the operator toggles that control them
 - `doctor`: inspect installed CLIs and available local state
 - `scaffold`: bootstrap an Iron Dome-compatible workspace in a target directory
@@ -107,7 +107,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
   - `/solo` packet generation with explicit privacy boundary
   - `/orch` runnable-provider execution for `claude`, `iflow`, and `opencode`
   - lane presets with a default planner pack and explicit optional write-capable lanes
-  - per-provider `review.json`, `session.log`, and consolidated aggregation with synthetic failure fallback
+  - per-provider `attempt.json`, `review.json`, `session.log`, and consolidated aggregation with synthetic failure fallback
   - `lanes`, `--lanes`, `--lane-set`, legacy `--providers`, and `--timeout-seconds` operator controls for runtime execution
   - provider override config through `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - Not implemented yet:

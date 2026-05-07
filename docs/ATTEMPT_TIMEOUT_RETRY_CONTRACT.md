@@ -78,7 +78,7 @@ Every provider attempt should be representable with:
 }
 ```
 
-The current `review.json` contract can remain the public normalized artifact, but the runtime must not lose the attempt facts needed to explain it.
+The current `review.json` contract remains the public normalized review artifact, while `attempt.json` records the runtime facts needed to explain it.
 
 ## Timeout Semantics
 
@@ -135,4 +135,4 @@ Before true parallel fan-out is implemented, tests must cover:
 
 ## Current Implementation Status
 
-Current sequential v1 already has synthetic failure behavior and stricter provider review normalization. This document is stricter than the current public artifact contract and should guide the next runtime hardening pass before parallel/debate expansion.
+Current sequential v1 writes `attempt.json` for provider lanes and preserves timeout/invalid/failure evidence separately from normalized `review.json`. Retry loops and parallel fan-out are still not implemented.

@@ -62,6 +62,34 @@ class ProviderReview:
 
 
 @dataclass(slots=True)
+class AttemptRecord:
+    attempt_id: str
+    trace_id: str
+    lane_id: str
+    provider: str
+    model: str | None
+    mode: str
+    runtime_mode: str
+    state: str
+    started_at: str
+    ended_at: str
+    timeout_seconds: int
+    process_terminated: bool
+    exit_code: int | None
+    stdout_tail_file: str
+    stderr_tail_file: str
+    raw_output_file: str
+    review_file: str
+    retryable: bool
+    operator_inspection_hint: str
+    command_shape: list[str] = field(default_factory=list)
+    cwd: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
 class ConsolidatedReview:
     trace_id: str
     generated_at: str
@@ -78,7 +106,7 @@ class ConsolidatedReview:
 
 def write_json(
     path: Path,
-    payload: ArtifactPacket | ProviderReview | ConsolidatedReview | Mapping[str, Any],
+    payload: ArtifactPacket | ProviderReview | AttemptRecord | ConsolidatedReview | Mapping[str, Any],
 ) -> Path:
     data = payload.to_dict() if hasattr(payload, "to_dict") else dict(payload)
     path.parent.mkdir(parents=True, exist_ok=True)

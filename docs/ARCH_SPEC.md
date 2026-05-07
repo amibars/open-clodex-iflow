@@ -120,6 +120,34 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
 }
 ```
 
+### attempt.json
+
+```json
+{
+  "attempt_id": "attempt-...",
+  "trace_id": "trace-...",
+  "lane_id": "opencode-minimax-plan",
+  "provider": "opencode",
+  "model": "opencode/minimax-m2.5-free",
+  "mode": "plan",
+  "runtime_mode": "headless",
+  "state": "completed | invalid_output | timeout_incomplete | failed",
+  "started_at": "2026-05-07T12:00:00Z",
+  "ended_at": "2026-05-07T12:00:01Z",
+  "timeout_seconds": 180,
+  "process_terminated": false,
+  "exit_code": 0,
+  "stdout_tail_file": "providers/opencode/stdout.txt",
+  "stderr_tail_file": "providers/opencode/stderr.txt",
+  "raw_output_file": "providers/opencode/raw_output.txt",
+  "review_file": "providers/opencode/review.json",
+  "retryable": false,
+  "operator_inspection_hint": "Provider completed with a valid normalized review.",
+  "command_shape": ["opencode", "run", "<review-prompt-redacted>"],
+  "cwd": "..."
+}
+```
+
 ### consolidated_review.json
 
 ```json
@@ -144,7 +172,7 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
 ### Current execution boundary
 
 - `/solo` writes only `artifact.json`
-- `/orch` writes `artifact.json`, per-provider `review.json`, `session.log`, and `consolidated_review.json`
+- `/orch` writes `artifact.json`, per-provider `attempt.json`, per-provider `review.json`, `session.log`, and `consolidated_review.json`
 - runtime is sequential and uses only runnable providers with explicit adapter support
 - provider timeouts and synthetic failures must preserve inspectable evidence according to `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
 - current `windowed` behavior is defined by `docs/WINDOWED_RUNTIME_CONTRACT.md` and does not claim dedicated OS windows per lane

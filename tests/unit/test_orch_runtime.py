@@ -568,6 +568,23 @@ def test_run_orchestration_timeout_writes_placeholder_log_files(tmp_path):
     assert review.verdict == "block"
     assert (tmp_path / "session" / "providers" / "claude" / "stdout.txt").exists()
     assert (tmp_path / "session" / "providers" / "claude" / "raw_output.txt").exists()
+    attempt = json.loads(
+        (tmp_path / "session" / "providers" / "claude" / "attempt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert attempt["state"] == "timeout_incomplete"
+    assert attempt["provider"] == "claude"
+    assert attempt["lane_id"] == "claude"
+    assert attempt["timeout_seconds"] == 1
+    assert attempt["process_terminated"] is True
+    assert attempt["exit_code"] is None
+    assert attempt["retryable"] is False
+    assert attempt["raw_output_file"].endswith("raw_output.txt")
+    assert attempt["stdout_tail_file"].endswith("stdout.txt")
+    assert attempt["stderr_tail_file"].endswith("stderr.txt")
+    assert attempt["review_file"].endswith("review.json")
+    assert "<review-prompt-redacted>" in attempt["command_shape"]
 
 
 def test_run_orchestration_logs_dropped_requested_providers(tmp_path):
@@ -1073,6 +1090,74 @@ def test_headless_timeout_preserves_valid_payload_if_review_was_already_emitted(
     assert provider_review.review_stage == "runtime"
     assert provider_review.summary == "iflow emitted a review before timing out"
     assert any("timed out after 1s" in note for note in provider_review.non_blocking_notes)
+    attempt = json.loads(
+        (tmp_path / "session" / "providers" / "iflow" / "attempt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert attempt["state"] == "timeout_incomplete"
+    assert attempt["provider"] == "iflow"
+    assert attempt["review_file"].endswith("review.json")
+    assert attempt["operator_inspection_hint"].startswith("Provider timed out")
+
+
+def test_run_orchestration_attempt_record_marks_completed_review(tmp_path):
+    snapshot = runtime_snapshot(
+        tmp_path,
+        {
+            "opencode": {"verdict": "proceed"},
+        },
+    )
+
+    _, review = run_orchestration(
+        task="attempt record success",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "proceed"
+    attempt = json.loads(
+        (tmp_path / "session" / "providers" / "opencode" / "attempt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert attempt["state"] == "completed"
+    assert attempt["exit_code"] == 0
+    assert attempt["process_terminated"] is False
+    assert attempt["retryable"] is False
+
+
+def test_run_orchestration_attempt_record_marks_invalid_output(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_invalid_confidence_provider_script(script_path, "opencode")
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="attempt invalid output",
+        runtime_mode="headless",
+        provider_snapshot=snapshot,
+        requested_providers=["opencode"],
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "block"
+    attempt = json.loads(
+        (tmp_path / "session" / "providers" / "opencode" / "attempt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert attempt["state"] == "invalid_output"
+    assert attempt["exit_code"] == 0
 
 
 def test_run_orchestration_applies_provider_override_env_from_config(tmp_path, monkeypatch):
