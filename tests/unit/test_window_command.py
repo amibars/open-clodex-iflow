@@ -4,7 +4,7 @@ import sys
 from open_clodex_iflow.adapters.window_command import run_window_request
 
 
-def test_run_window_request_writes_stdout_stderr_and_status(tmp_path):
+def test_run_window_request_writes_stdout_stderr_status_and_tees_visible_output(tmp_path, capsys):
     request_path = tmp_path / "request.json"
     stdout_path = tmp_path / "stdout.txt"
     stderr_path = tmp_path / "stderr.txt"
@@ -26,10 +26,13 @@ def test_run_window_request_writes_stdout_stderr_and_status(tmp_path):
     )
 
     exit_code = run_window_request(request_path)
+    captured = capsys.readouterr()
 
     assert exit_code == 0
     assert stdout_path.read_text(encoding="utf-8").strip() == "visible stdout"
     assert stderr_path.read_text(encoding="utf-8").strip() == "visible stderr"
+    assert "visible stdout" in captured.out
+    assert "visible stderr" in captured.err
     assert json.loads(status_path.read_text(encoding="utf-8")) == {
         "exit_code": 0,
         "timed_out": False,

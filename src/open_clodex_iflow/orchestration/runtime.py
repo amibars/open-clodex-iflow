@@ -52,6 +52,7 @@ def run_orchestration(
     execution_mode: str = "sequential",
     output_dir: Path,
     python_executable: Path | None = None,
+    window_hold_seconds: int = 0,
 ) -> tuple[ArtifactPacket, ConsolidatedReview]:
     if execution_mode not in {"sequential", "parallel"}:
         raise ValueError(f"unsupported execution mode: {execution_mode}")
@@ -163,6 +164,7 @@ def run_orchestration(
             python_executable=python_executable,
             provider_override=provider_overrides.get(provider),
             lane=lane,
+            window_hold_seconds=window_hold_seconds,
         )
 
     if execution_mode == "parallel" and len(execution_lanes) > 1:

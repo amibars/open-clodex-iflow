@@ -414,6 +414,31 @@ def test_review_prompt_includes_lane_lens_without_narrowing_scope():
     assert "Spend extra attention on your primary lens." in prompt
 
 
+def test_opencode_review_prompt_requires_provider_name_not_lane_id():
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-05-07T00:00:00Z",
+        mode="orch",
+        task="review provider field",
+        runtime_mode="dedicated-windows",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["opencode"],
+        planned_lanes=["opencode-minimax-plan"],
+        provider_snapshot={
+            "opencode": {"available": True, "binary": "opencode", "readiness": "binary+state"},
+        },
+        next_step="Inspect runtime reviews.",
+    )
+    lane = list_lane_presets()["opencode-minimax-plan"]
+
+    prompt = runtime_module.build_review_prompt("opencode", artifact, lane=lane)
+
+    assert "provider must be opencode" in prompt
+    assert "not opencode-minimax-plan" in prompt
+
+
 def write_iflow_stdout_provider_script(path: Path, provider: str) -> None:
     payload = {
         "provider": provider,
@@ -738,6 +763,7 @@ def test_execute_dedicated_windows_round_trips_request_and_status(monkeypatch, t
         stderr_path=stderr_path,
         timeout_seconds=3,
         extra_env={"OCIFLOW_TEST": "1"},
+        window_hold_seconds=7,
     )
 
     request = captured["request"]
@@ -745,6 +771,7 @@ def test_execute_dedicated_windows_round_trips_request_and_status(monkeypatch, t
     assert stdout_text == "captured stdout"
     assert stderr_text == "captured stderr"
     assert request["env"] == {"OCIFLOW_TEST": "1"}
+    assert request["hold_seconds"] == 7
     assert request["command"][0] == sys.executable
     assert captured["launch_command"][:5] == ["cmd.exe", "/d", "/s", "/c", "start"]
 
@@ -825,6 +852,32 @@ def test_normalize_review_accepts_numeric_confidence():
     )
 
     assert review.confidence == "high"
+
+
+def test_normalize_review_accepts_matching_lane_id_provider_alias():
+    lane = list_lane_presets()["opencode-minimax-plan"]
+
+    review = runtime_module.normalize_review(
+        "opencode",
+        {
+            "provider": "opencode-minimax-plan",
+            "verdict": "proceed",
+            "summary": "lane id provider alias",
+            "blocking_findings": [],
+            "non_blocking_notes": [],
+            "tests_to_add": [],
+            "plan_risks": [],
+            "confidence": "high",
+        },
+        runtime_mode="dedicated-windows",
+        raw_output_file=Path("raw.json"),
+        log_file=Path("stdout.txt"),
+        lane=lane,
+    )
+
+    assert review.provider == "opencode"
+    assert review.lane_id == "opencode-minimax-plan"
+    assert "normalized to provider opencode" in review.non_blocking_notes[0]
 
 
 def test_run_orchestration_creates_synthetic_block_on_invalid_provider_output(tmp_path):

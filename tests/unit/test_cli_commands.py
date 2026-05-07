@@ -70,6 +70,8 @@ def test_orch_uses_runtime_orchestrator(monkeypatch, tmp_path):
             "15",
             "--execution",
             "parallel",
+            "--hold-windows-seconds",
+            "9",
             "--output-dir",
             str(tmp_path),
         ]
@@ -84,6 +86,7 @@ def test_orch_uses_runtime_orchestrator(monkeypatch, tmp_path):
     assert captured["requested_providers"] == ["iflow"]
     assert captured["timeout_seconds"] == 15
     assert captured["execution_mode"] == "parallel"
+    assert captured["window_hold_seconds"] == 9
 
 
 def test_orch_defaults_to_lane_pack_when_no_explicit_provider_selection(monkeypatch, tmp_path):
@@ -335,6 +338,8 @@ def test_orch_accepts_dedicated_windows_mode(monkeypatch, tmp_path):
             "dedicated windows",
             "--mode",
             "dedicated-windows",
+            "--hold-windows-seconds",
+            "11",
             "--output-dir",
             str(tmp_path),
         ]
@@ -342,3 +347,37 @@ def test_orch_accepts_dedicated_windows_mode(monkeypatch, tmp_path):
 
     assert exit_code == 0
     assert captured["runtime_mode"] == "dedicated-windows"
+    assert captured["window_hold_seconds"] == 11
+
+
+def test_clean_dry_run_keeps_trace_dirs(tmp_path, capsys):
+    root = tmp_path / ".open-clodex-iflow"
+    for name in ["trace-20260507T000001Z-a", "trace-20260507T000002Z-b", "trace-20260507T000003Z-c"]:
+        (root / name).mkdir(parents=True)
+    (root / "not-a-trace").mkdir()
+
+    exit_code = cli.main(["clean", "--root", str(root), "--keep-last", "1"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "dry-run" in captured.out
+    assert "would remove 2 trace dirs" in captured.out
+    assert (root / "trace-20260507T000001Z-a").exists()
+    assert (root / "trace-20260507T000002Z-b").exists()
+    assert (root / "trace-20260507T000003Z-c").exists()
+    assert (root / "not-a-trace").exists()
+
+
+def test_clean_yes_removes_old_trace_dirs_and_keeps_latest(tmp_path):
+    root = tmp_path / ".open-clodex-iflow"
+    for name in ["trace-20260507T000001Z-a", "trace-20260507T000002Z-b", "trace-20260507T000003Z-c"]:
+        (root / name).mkdir(parents=True)
+    (root / "not-a-trace").mkdir()
+
+    exit_code = cli.main(["clean", "--root", str(root), "--keep-last", "1", "--yes"])
+
+    assert exit_code == 0
+    assert not (root / "trace-20260507T000001Z-a").exists()
+    assert not (root / "trace-20260507T000002Z-b").exists()
+    assert (root / "trace-20260507T000003Z-c").exists()
+    assert (root / "not-a-trace").exists()

@@ -109,6 +109,11 @@ def build_review_prompt(
 
     artifact_payload = json.dumps(artifact.to_dict(), indent=2, sort_keys=True)
     lens_block = f"{lens_instruction}\n" if lens_instruction else ""
+    provider_rule = f"provider must be {provider}"
+    if lane:
+        provider_rule += f", not {lane.lane_id}."
+    else:
+        provider_rule += "."
     return (
         f"You are the {provider} review lane for open-clodex-iflow.\n"
         "Review the structured artifact below and return ONLY one JSON object.\n"
@@ -116,6 +121,7 @@ def build_review_prompt(
         "tests_to_add, plan_risks, confidence.\n"
         f"{scope_rule}\n"
         f"{lens_block}"
+        f"{provider_rule}\n"
         "Allowed verdict values: proceed, fix_code, fix_plan, block.\n"
         "Artifact:\n"
         f"{artifact_payload}\n"
@@ -353,13 +359,23 @@ def normalize_review(
     lane: LanePreset | None = None,
 ) -> ProviderReview:
     provider_name = str(payload.get("provider", ""))
+    provider_alias_note = ""
     if provider_name != provider:
-        raise ValueError(f"provider field mismatch: expected {provider}, got {provider_name or 'empty'}")
+        if lane and provider_name == lane.lane_id:
+            provider_alias_note = (
+                f"Provider output used lane id {provider_name} in provider field; "
+                f"normalized to provider {provider}."
+            )
+        else:
+            raise ValueError(f"provider field mismatch: expected {provider}, got {provider_name or 'empty'}")
 
     verdict = str(payload.get("verdict", "block"))
     if verdict not in ALLOWED_VERDICTS:
         raise ValueError(f"unsupported verdict: {verdict}")
     confidence = normalize_confidence(payload.get("confidence", "medium"))
+    non_blocking_notes = stringify_list(payload.get("non_blocking_notes"))
+    if provider_alias_note:
+        non_blocking_notes.insert(0, provider_alias_note)
     return ProviderReview(
         provider=provider,
         lane_id=lane.lane_id if lane else provider,
@@ -367,7 +383,7 @@ def normalize_review(
         verdict=verdict,
         summary=str(payload.get("summary", f"{provider} completed review")),
         blocking_findings=stringify_list(payload.get("blocking_findings")),
-        non_blocking_notes=stringify_list(payload.get("non_blocking_notes")),
+        non_blocking_notes=non_blocking_notes,
         tests_to_add=stringify_list(payload.get("tests_to_add")),
         plan_risks=stringify_list(payload.get("plan_risks")),
         confidence=confidence,
@@ -479,6 +495,7 @@ def execute_headless(
     stderr_path: Path,
     timeout_seconds: int,
     extra_env: dict[str, str] | None = None,
+    window_hold_seconds: int = 0,
 ) -> tuple[int, str, str]:
     process_env = os.environ.copy()
     process_env.update(extra_env or {})
@@ -518,6 +535,7 @@ def execute_visible(
     stderr_path: Path,
     timeout_seconds: int,
     extra_env: dict[str, str] | None = None,
+    window_hold_seconds: int = 0,
 ) -> tuple[int, str, str]:
     process_env = os.environ.copy()
     process_env.update(extra_env or {})
@@ -599,6 +617,7 @@ def execute_dedicated_windows(
     stderr_path: Path,
     timeout_seconds: int,
     extra_env: dict[str, str] | None = None,
+    window_hold_seconds: int = 0,
 ) -> tuple[int, str, str]:
     if not dedicated_windows_available():
         raise RuntimeError("dedicated-windows mode requires Windows cmd.exe")
@@ -616,6 +635,7 @@ def execute_dedicated_windows(
                 "stderr_path": str(stderr_path),
                 "status_path": str(status_path),
                 "timeout_seconds": timeout_seconds,
+                "hold_seconds": window_hold_seconds,
                 "env": extra_env or {},
             },
             indent=2,
@@ -697,6 +717,7 @@ def run_provider_review(
     python_executable: Path | None = None,
     provider_override: dict[str, object] | None = None,
     lane: LanePreset | None = None,
+    window_hold_seconds: int = 0,
 ) -> ProviderReview:
     output_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = output_dir / "stdout.txt"
@@ -737,6 +758,7 @@ def run_provider_review(
             stderr_path=stderr_path,
             timeout_seconds=timeout_seconds,
             extra_env=extra_env,
+            window_hold_seconds=window_hold_seconds,
         )
     except subprocess.TimeoutExpired as exc:
         timeout_note = f"{provider} timed out after {timeout_seconds}s"

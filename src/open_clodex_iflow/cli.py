@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -28,6 +29,7 @@ def normalize_aliases(argv: Iterable[str]) -> list[str]:
         "/orch": "orch",
         "/orchester": "orch",
         "/lanes": "lanes",
+        "/clean": "clean",
     }
     if normalized[0] in aliases:
         normalized[0] = aliases[normalized[0]]
@@ -85,6 +87,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="sequential",
         help="Lane execution strategy; defaults to stable sequential execution",
     )
+    orch.add_argument(
+        "--hold-windows-seconds",
+        type=int,
+        default=0,
+        help="Keep dedicated worker windows open for N seconds after each lane exits",
+    )
 
     subparsers.add_parser("doctor", help="Inspect installed CLIs and known local state")
     subparsers.add_parser("lanes", help="List available lane presets and CLI toggles")
@@ -94,6 +102,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help="Overwrite known scaffold files when the destination is not empty",
+    )
+    clean = subparsers.add_parser("clean", help="Prune local .open-clodex-iflow trace directories")
+    clean.add_argument(
+        "--root",
+        type=Path,
+        help="Trace root to clean; defaults to .open-clodex-iflow under the current directory",
+    )
+    clean.add_argument(
+        "--keep-last",
+        type=int,
+        default=20,
+        help="Number of newest trace-* directories to keep",
+    )
+    clean.add_argument(
+        "--yes",
+        action="store_true",
+        help="Actually delete old trace directories; without this flag clean is a dry-run",
     )
 
     return parser
@@ -113,6 +138,31 @@ def reserve_trace_safe_default_session_dir(trace_id: str) -> Path:
         except FileExistsError:
             continue
     raise RuntimeError(f"could not reserve trace-safe output directory for {trace_id}")
+
+
+def trace_root(root: Path | None = None) -> Path:
+    return root or Path.cwd() / ".open-clodex-iflow"
+
+
+def cleanup_trace_dirs(root: Path, *, keep_last: int, dry_run: bool) -> list[Path]:
+    if keep_last < 0:
+        raise ValueError("--keep-last must be >= 0")
+    if not root.exists():
+        return []
+    trace_dirs = sorted(
+        [
+            candidate
+            for candidate in root.iterdir()
+            if candidate.is_dir() and candidate.name.startswith("trace-")
+        ],
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    removable = trace_dirs[keep_last:]
+    if not dry_run:
+        for path in removable:
+            shutil.rmtree(path)
+    return removable
 
 
 def parse_runtime_args(argv: Iterable[str] | None) -> argparse.Namespace:
@@ -154,6 +204,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             timeout_seconds=args.timeout_seconds,
             execution_mode=args.execution,
             output_dir=output_dir,
+            window_hold_seconds=max(0, args.hold_windows_seconds),
         )
         artifact_path = write_json(output_dir / "artifact.json", artifact)
         review_path = write_json(output_dir / "consolidated_review.json", review)
@@ -174,6 +225,15 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.command == "scaffold":
         created_files = scaffold_workspace(args.destination, force=args.force)
         print(f"scaffolded {len(created_files)} files in {args.destination.resolve()}")
+        return 0
+
+    if args.command == "clean":
+        root = trace_root(args.root).resolve()
+        removed = cleanup_trace_dirs(root, keep_last=args.keep_last, dry_run=not args.yes)
+        action = "dry-run; would remove" if not args.yes else "removed"
+        print(f"clean {action} {len(removed)} trace dirs under {root}")
+        for path in removed:
+            print(path)
         return 0
 
     return 1

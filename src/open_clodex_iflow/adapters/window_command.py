@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +39,25 @@ def _string_list(value: Any, field_name: str) -> list[str]:
     return value
 
 
+def _tee_reader(
+    stream,
+    collected: list[str],
+    visible_stream,
+) -> None:
+    for chunk in iter(stream.readline, ""):
+        collected.append(chunk)
+        visible_stream.write(chunk)
+        visible_stream.flush()
+    stream.close()
+
+
+def _hold_window(hold_seconds: int) -> None:
+    if hold_seconds <= 0:
+        return
+    print(f"\n[open-clodex-iflow] holding window for {hold_seconds}s before closing...")
+    time.sleep(hold_seconds)
+
+
 def run_window_request(request_path: Path) -> int:
     request = json.loads(request_path.read_text(encoding="utf-8"))
     command = _string_list(request.get("command"), "command")
@@ -45,6 +66,7 @@ def run_window_request(request_path: Path) -> int:
     stderr_path = Path(str(request["stderr_path"]))
     status_path = Path(str(request["status_path"]))
     timeout_seconds = int(request["timeout_seconds"])
+    hold_seconds = max(0, int(request.get("hold_seconds", 0)))
     env = request.get("env", {})
     if not isinstance(env, dict):
         raise ValueError("env must be an object")
@@ -66,21 +88,50 @@ def run_window_request(request_path: Path) -> int:
         _write_text(stdout_path, "")
         _write_text(stderr_path, str(exc))
         _write_status(status_path, exit_code=LAUNCH_FAILURE_EXIT_CODE, timed_out=False)
+        _hold_window(hold_seconds)
         return LAUNCH_FAILURE_EXIT_CODE
 
+    stdout_chunks: list[str] = []
+    stderr_chunks: list[str] = []
+    assert process.stdout is not None
+    assert process.stderr is not None
+    stdout_thread = threading.Thread(
+        target=_tee_reader,
+        args=(process.stdout, stdout_chunks, sys.stdout),
+        daemon=True,
+    )
+    stderr_thread = threading.Thread(
+        target=_tee_reader,
+        args=(process.stderr, stderr_chunks, sys.stderr),
+        daemon=True,
+    )
+    stdout_thread.start()
+    stderr_thread.start()
+
+    timed_out = False
     try:
-        stdout_text, stderr_text = process.communicate(timeout=timeout_seconds)
+        process.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
+        timed_out = True
         process.kill()
-        stdout_text, stderr_text = process.communicate()
+        process.wait()
+    finally:
+        stdout_thread.join(timeout=1)
+        stderr_thread.join(timeout=1)
+
+    stdout_text = "".join(stdout_chunks)
+    stderr_text = "".join(stderr_chunks)
+    if timed_out:
         _write_text(stdout_path, stdout_text)
         _write_text(stderr_path, stderr_text)
         _write_status(status_path, exit_code=None, timed_out=True)
+        _hold_window(hold_seconds)
         return TIMEOUT_EXIT_CODE
 
     _write_text(stdout_path, stdout_text)
     _write_text(stderr_path, stderr_text)
     _write_status(status_path, exit_code=process.returncode, timed_out=False)
+    _hold_window(hold_seconds)
     return int(process.returncode)
 
 

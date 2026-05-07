@@ -17,7 +17,8 @@ Current v1 `dedicated-windows` means:
 
 - `/orch` launches each lane through a separate Windows console window when `--mode dedicated-windows` is selected.
 - The backend uses a JSON request file and `python -m open_clodex_iflow.adapters.window_command` instead of passing the review prompt through the shell command line.
-- The helper owns the provider subprocess, captures `stdout.txt`, `stderr.txt`, and `dedicated_window_status.json`, and reports timeout status back to orchestration.
+- The helper owns the provider subprocess, tee-streams stdout/stderr into the worker window, captures `stdout.txt`, `stderr.txt`, and `dedicated_window_status.json`, and reports timeout status back to orchestration.
+- `--hold-windows-seconds <n>` can keep short-lived worker windows open for inspection after the provider exits.
 - Timeout handling kills the provider child process and preserves partial output as evidence.
 - Non-zero exit, invalid output, timeout, or launch failure becomes a synthetic blocking provider review instead of crashing the entire `/orch` run.
 
@@ -38,7 +39,7 @@ Those are separate product expansions and must not be implied by docs, release n
 | --- | --- | --- | --- |
 | `headless` | Run providers without streaming as the default operator surface | artifacts/logs after execution | current v1 |
 | `windowed` | Run providers with operator-visible progress/output in the current terminal flow | current terminal + artifacts/logs | current v1 default |
-| `dedicated-windows` | Run each lane through a separate Windows console window with JSON request/status capture | separate OS windows + artifacts/logs | current v1 explicit mode |
+| `dedicated-windows` | Run each lane through a separate Windows console window with live output tee and JSON request/status capture | separate OS windows + artifacts/logs | current v1 explicit mode |
 
 `dedicated-windows` is Windows-only. On unsupported platforms or failed window-launch capability, the lane is normalized into a synthetic blocking review with attempt evidence.
 
@@ -49,8 +50,9 @@ The implemented backend is deliberately conservative:
 1. The orchestrator writes `dedicated_window_request.json` next to the lane artifacts.
 2. The orchestrator launches a new window with `cmd.exe /d /s /c start <title> /wait <python> -m open_clodex_iflow.adapters.window_command <request.json>`.
 3. The helper reads the request JSON and starts the real provider command as an argument array.
-4. The helper writes `stdout.txt`, `stderr.txt`, and `dedicated_window_status.json`.
-5. The orchestrator reads those files and converts the result into normal `attempt.json` and `review.json` artifacts.
+4. The helper tee-streams provider stdout/stderr to the visible worker window.
+5. The helper writes `stdout.txt`, `stderr.txt`, and `dedicated_window_status.json`.
+6. The orchestrator reads those files and converts the result into normal `attempt.json` and `review.json` artifacts.
 
 This design is chosen because opening a window alone is not enough. The runtime must also preserve output, status, timeout facts, and traceability.
 
@@ -61,6 +63,7 @@ The current backend provides:
 - backend availability check for Windows `cmd.exe`,
 - lane window title,
 - command injection boundary through request JSON instead of shell prompt interpolation,
+- live stdout/stderr tee into the worker window,
 - stdout/stderr capture files,
 - timeout/kill for the provider child process owned by the helper,
 - status file with `exit_code` and `timed_out`,
@@ -92,6 +95,7 @@ Docs may say:
 
 - current `windowed` is visible current-terminal execution,
 - `dedicated-windows` opens separate Windows console windows for one-shot non-interactive lane commands,
+- dedicated windows can be held briefly with `--hold-windows-seconds` for operator inspection,
 - `dedicated-windows` is explicit opt-in and Windows-only,
 - current dedicated windows are not persistent TUI panes.
 

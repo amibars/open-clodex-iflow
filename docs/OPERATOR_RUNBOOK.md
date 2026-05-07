@@ -78,11 +78,12 @@ Lanes that share one provider are serialized inside that provider group to avoid
 Open separate one-shot Windows console windows for each selected lane when you want to watch worker lanes outside the current terminal:
 
 ```powershell
-open-clodex-iflow /orch "Review the current task" --lane-set recommended-planners --execution parallel --mode dedicated-windows
+open-clodex-iflow /orch "Review the current task" --lane-set recommended-planners --execution parallel --mode dedicated-windows --hold-windows-seconds 30
 ```
 
-`dedicated-windows` still writes the normal lane artifacts. Treat it as a visible execution backend, not as persistent TUI control. It does not attach to windows you opened manually and it does not patch Codex slash commands.
+`dedicated-windows` tee-streams provider stdout/stderr into the worker window and still writes the normal lane artifacts. Treat it as a visible execution backend, not as persistent TUI control. It does not attach to windows you opened manually and it does not patch Codex slash commands.
 When the selected lanes all route through OpenCode, `--execution parallel` will still open them one at a time because they share the same OpenCode state database.
+One selected lane means one worker window. A fast lane can finish and close quickly unless you pass `--hold-windows-seconds`.
 
 Run only the lanes you want:
 
@@ -153,10 +154,29 @@ Treat a lane as genuinely successful only if its `review.json` shows:
 
 Synthetic failures are still useful operational evidence, but they do not prove that the lane completed a trustworthy review.
 
-## 7. Important caveats
+## 7. Clean local trace artifacts
+
+Every run writes trace artifacts under `.open-clodex-iflow` in the current working directory unless `--output-dir` is provided.
+If you launch from `C:\Users\karte`, the default root is `C:\Users\karte\.open-clodex-iflow`.
+
+Preview cleanup without deleting anything:
+
+```powershell
+open-clodex-iflow clean --root C:\Users\karte\.open-clodex-iflow --keep-last 10
+```
+
+Actually delete old trace directories:
+
+```powershell
+open-clodex-iflow clean --root C:\Users\karte\.open-clodex-iflow --keep-last 10 --yes
+```
+
+`clean` only targets directories named `trace-*` and leaves unrelated files/directories alone.
+
+## 8. Important caveats
 
 - `windowed` means operator-visible execution in the current terminal.
-- `dedicated-windows` opens one-shot Windows console windows per lane and captures stdout/stderr/status through request artifacts; it is not Windows Terminal pane management or persistent TUI control.
+- `dedicated-windows` opens one-shot Windows console windows per lane, tee-streams stdout/stderr, and captures stdout/stderr/status through request artifacts; it is not Windows Terminal pane management or persistent TUI control.
 - `iflow` is explicit opt-in after the April 2026 shutdown/API-key drift; `--thinking` is still best-effort when you use an iFlow lane.
 - `opencode` planner/build lanes are driven through `--agent`, not through TUI automation.
 - This repo does not currently patch Codex or add a native slash mode inside the Codex app itself.

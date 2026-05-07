@@ -18,6 +18,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 - `lanes`: inspect default lane presets, optional lanes, and the operator toggles that control them
 - `doctor`: inspect installed CLIs and available local state
 - `scaffold`: bootstrap an Iron Dome-compatible workspace in a target directory
+- `clean`: prune old `.open-clodex-iflow/trace-*` directories; dry-run unless `--yes` is passed
 
 Live provider status is tracked in `docs/PROVIDER_COMPATIBILITY.md`.
 OpenCode lane benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`.
@@ -53,9 +54,11 @@ open-clodex-iflow solo "Summarize the current task"
 open-clodex-iflow orch "Review repository readiness" --mode headless
 open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --mode headless
 open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --execution parallel --mode headless
-open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --execution parallel --mode dedicated-windows
+open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --execution parallel --mode dedicated-windows --hold-windows-seconds 30
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-hy3-preview-plan-thinking --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-minimax-build-thinking --mode headless
+open-clodex-iflow clean --root C:\Users\karte\.open-clodex-iflow --keep-last 10
+open-clodex-iflow clean --root C:\Users\karte\.open-clodex-iflow --keep-last 10 --yes
 open-clodex-iflow scaffold <target-workspace>
 ```
 
@@ -88,7 +91,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 - Secondary engineering guardrail: Ubuntu CI for Python/enforcement drift detection
 - This repo does not currently claim Linux desktop runtime parity for visible/windowed orchestration
 - Current `windowed` truth: operator-visible execution in the current terminal, not dedicated OS windows per lane
-- Current `dedicated-windows` truth: explicit Windows-only one-shot lane windows with JSON request/status capture, not persistent TUI sessions
+- Current `dedicated-windows` truth: explicit Windows-only one-shot lane windows with live stdout/stderr tee plus JSON request/status capture, not persistent TUI sessions
 
 ## Required repo docs before runtime expansion
 
@@ -123,7 +126,9 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
   - per-provider `attempt.json`, `review.json`, `session.log`, and consolidated aggregation with synthetic failure fallback
   - `lanes`, `--lanes`, `--lane-set`, legacy `--providers`, and `--timeout-seconds` operator controls for runtime execution
   - optional provider-aware `--execution parallel` for single-pass independent lane fan-out
-  - explicit `--mode dedicated-windows` for one-shot Windows console lane windows with captured artifacts
+  - explicit `--mode dedicated-windows` for one-shot Windows console lane windows with live output tee and captured artifacts
+  - `--hold-windows-seconds` for inspecting short dedicated-window runs
+  - `clean` dry-run/confirmed pruning for local trace directories
   - provider override config through `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - Not implemented yet:
   - debate loop or multi-pass fan-out

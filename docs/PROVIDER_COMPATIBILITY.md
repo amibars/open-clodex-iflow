@@ -56,10 +56,11 @@
 - For `iflow`, the old success snapshot is historical. Current operator truth is explicit opt-in only because the provider has shifted to shutdown/API-key behavior.
 - For `iflow`, planner presets also depend on the selected model honoring `--plan` and, optionally, `--thinking`; the CLI does not expose a model capability matrix, so those toggles are best-effort outside the documented local smokes.
 - For `opencode`, planner/build lane selection now depends on `--agent plan|build` rather than TUI-only mode selection.
+- For `opencode`, some models may echo the lane id in the review `provider` field. The runtime accepts a matching lane id as an alias and normalizes the stored provider back to `opencode`; unrelated provider mismatches remain blocking.
 - Presence of `attempt.json`, `review.json`, `session.log`, `stdout.txt`, or other artifacts alone is not evidence of provider success; success requires a normalized provider review with `review_stage=runtime`.
 - Timeout behavior must follow `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`: partial output is evidence to preserve, not a valid provider review by itself.
 - `windowed` provider compatibility means current-terminal visible execution.
-- `dedicated-windows` provider compatibility means Windows-only one-shot lane windows with JSON request/status capture. It proves separate-window launch and artifact capture for non-interactive provider commands, not persistent TUI control.
+- `dedicated-windows` provider compatibility means Windows-only one-shot lane windows with live stdout/stderr tee plus JSON request/status capture. It proves separate-window launch and artifact capture for non-interactive provider commands, not persistent TUI control.
 - Any provider integration that adds MCP, memory, plugin hooks, or broader auth/session access must update `docs/SECURITY_THREAT_MODEL.md` before being treated as default-supported.
 - Parallel fan-out does not change provider success interpretation: each lane still needs its own valid `review.json` with `review_stage=runtime`.
 
