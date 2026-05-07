@@ -215,6 +215,7 @@ def test_lanes_command_prints_default_and_optional_profiles(capsys):
     assert "legacy/API-key" in captured
     assert "opencode-minimax-build-thinking" in captured
     assert "--execution parallel" in captured
+    assert "lens=fast sanity/default reviewer" in captured
 
 
 def test_scaffold_command_creates_workspace(tmp_path):

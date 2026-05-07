@@ -55,13 +55,31 @@ def command_prefix(binary: str, python_executable: Path | None = None) -> list[s
     return [binary]
 
 
-def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
+def lane_lens_instruction(lane: LanePreset | None = None) -> str:
+    if not lane or not lane.review_lens:
+        return ""
+    return (
+        "Review the full artifact. "
+        f"Your primary lens is {lane.review_lens}. "
+        "Do not limit yourself to that lens. "
+        "Report any blocker you find. "
+        "Spend extra attention on your primary lens. "
+    )
+
+
+def build_review_prompt(
+    provider: str,
+    artifact: ArtifactPacket,
+    *,
+    lane: LanePreset | None = None,
+) -> str:
     artifact_payload = json.dumps(artifact.to_dict(), sort_keys=True)
     scope_rule = (
         "Only evaluate planned_providers and planned_lanes. "
         "A missing provider in provider_snapshot is not blocking when that provider is not planned; "
         "treat it as context only. "
     )
+    lens_instruction = lane_lens_instruction(lane)
     if provider == "claude":
         compact_payload = json.dumps(artifact.to_dict(), separators=(",", ":"), sort_keys=True)
         return (
@@ -69,6 +87,7 @@ def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
             "blocking_findings, non_blocking_notes, tests_to_add, plan_risks, confidence. "
             "provider must be claude. "
             f"{scope_rule}"
+            f"{lens_instruction}"
             "verdict must be one of proceed, fix_code, fix_plan, block. "
             "confidence must be one of low, medium, high. "
             f"Artifact: {compact_payload}"
@@ -81,18 +100,21 @@ def build_review_prompt(provider: str, artifact: ArtifactPacket) -> str:
             "tests_to_add, plan_risks, confidence. "
             "provider must be iflow. "
             f"{scope_rule}"
+            f"{lens_instruction}"
             "verdict must be one of proceed, fix_code, fix_plan, block. "
             "confidence must be one of low, medium, high. "
             f"Artifact: {compact_payload}"
         )
 
     artifact_payload = json.dumps(artifact.to_dict(), indent=2, sort_keys=True)
+    lens_block = f"{lens_instruction}\n" if lens_instruction else ""
     return (
         f"You are the {provider} review lane for open-clodex-iflow.\n"
         "Review the structured artifact below and return ONLY one JSON object.\n"
         "Required keys: provider, verdict, summary, blocking_findings, non_blocking_notes, "
         "tests_to_add, plan_risks, confidence.\n"
         f"{scope_rule}\n"
+        f"{lens_block}"
         "Allowed verdict values: proceed, fix_code, fix_plan, block.\n"
         "Artifact:\n"
         f"{artifact_payload}\n"
@@ -575,7 +597,7 @@ def run_provider_review(
     provider_workdir = execution_workdir(provider, output_dir, project_root)
 
     binary = str(metadata["binary"])
-    prompt = build_review_prompt(provider, artifact)
+    prompt = build_review_prompt(provider, artifact, lane=lane)
     command = build_provider_command(
         provider,
         binary=binary,

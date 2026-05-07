@@ -42,6 +42,12 @@ def test_recommended_lane_set_replaces_iflow_with_opencode_routed_winners():
     assert all(lane.agent == "plan" for lane in lanes)
     assert all(lane.write_authority == "plan-only" for lane in lanes)
     assert "iflow-glm5-plan-thinking" not in lane_set_catalog()[RECOMMENDED_LANE_SET_ID]
+    assert {lane.lane_id: lane.review_lens for lane in lanes} == {
+        "opencode-minimax-plan": "fast sanity/default reviewer: obvious blockers, proceed/fix/block triage, low-latency confidence check",
+        "nvidia-glm51-plan": "plan correctness reviewer: missing steps, sequencing, long-horizon reasoning, orchestration logic",
+        "nvidia-devstral2-plan": "implementation/code/runtime/test reviewer: code-level risks, runtime behavior, test gaps, adapter/CLI failure modes",
+        "nvidia-mistral-large3-plan": "architecture/senior reviewer: architecture boundaries, scope control, maintainability, compatibility, long-term debt",
+    }
 
 
 def test_lane_catalog_exposes_optional_non_default_lanes():

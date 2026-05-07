@@ -67,6 +67,13 @@ The stronger non-iFlow review pack is explicit:
 
 - `recommended-planners`: `opencode-minimax-plan`, `nvidia-glm51-plan`, `nvidia-devstral2-plan`, `nvidia-mistral-large3-plan`
 
+This pack uses hybrid review lenses. Every lane reviews the full artifact and may report any blocker, but each lane gets an explicit primary focus:
+
+- `opencode-minimax-plan`: fast sanity/default reviewer
+- `nvidia-glm51-plan`: plan correctness reviewer
+- `nvidia-devstral2-plan`: implementation/code/runtime/test reviewer
+- `nvidia-mistral-large3-plan`: architecture/senior reviewer
+
 These NVIDIA lanes run through OpenCode with `--model nvidia/...`. They require OpenCode `nvidia` provider config plus `NVIDIA_API_KEY` on the machine, so they are not the default pack.
 
 `iflow` presets still exist, but they are explicit legacy/API-key lanes after the April 2026 iFlow CLI shutdown notice. Use `--lanes iflow-kimi-k25-plan-thinking` or another explicit iFlow lane only when you intentionally want to spend/use your configured iFlow-compatible API key. The explicit write-capable lane is currently `opencode-minimax-build-thinking`; it is never part of the default pack and must be requested on purpose.

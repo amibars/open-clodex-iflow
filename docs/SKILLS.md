@@ -39,6 +39,15 @@
 - `OpenCode`: compatibility lane, alternative review angle, implementation sanity
 - `Codex`: control plane, integration, final repository changes
 
+## Recommended planner hybrid lenses
+
+- `opencode-minimax-plan`: fast sanity/default reviewer
+- `nvidia-glm51-plan`: plan correctness reviewer
+- `nvidia-devstral2-plan`: implementation/code/runtime/test reviewer
+- `nvidia-mistral-large3-plan`: architecture/senior reviewer
+
+These lenses are emphasis instructions, not scope restrictions. Each lane still reviews the full artifact and may report any blocker.
+
 ---
 
 ## Escalation rules

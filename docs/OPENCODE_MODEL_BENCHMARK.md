@@ -130,6 +130,15 @@ Also available as one non-default lane set:
 
 - `recommended-planners`: `opencode-minimax-plan`, `nvidia-glm51-plan`, `nvidia-devstral2-plan`, `nvidia-mistral-large3-plan`
 
+Hybrid review lenses for `recommended-planners`:
+
+- `opencode-minimax-plan`: fast sanity/default reviewer; focus on obvious blockers, proceed/fix/block triage, low-latency confidence check.
+- `nvidia-glm51-plan`: plan correctness reviewer; focus on missing steps, sequencing, long-horizon reasoning, orchestration logic.
+- `nvidia-devstral2-plan`: implementation/code/runtime/test reviewer; focus on code-level risks, runtime behavior, test gaps, adapter/CLI failure modes.
+- `nvidia-mistral-large3-plan`: architecture/senior reviewer; focus on architecture boundaries, scope control, maintainability, compatibility, long-term debt.
+
+These are hybrid lenses, not hard partitions: every lane reviews the full artifact and may report any blocker it finds.
+
 Not promoted:
 
 - `nvidia-ministral3-plan`: Mistral Large 3 is the stronger Mistral-family pick and was faster in the bounded pass.

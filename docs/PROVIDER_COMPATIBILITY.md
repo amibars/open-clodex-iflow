@@ -40,7 +40,7 @@
   - After adding an explicit prompt scope rule, the default `opencode-minimax-plan` smoke completed with `review_stage=runtime` and `verdict=proceed`; missing unplanned iFlow was treated as context only.
   - A full requested model pass was added to `docs/OPENCODE_MODEL_BENCHMARK.md`. NVIDIA models require explicit OpenCode provider config plus `NVIDIA_API_KEY` in the runtime environment; auth state alone is not enough for repo-root non-interactive lanes.
   - Current strongest NVIDIA candidates from the bounded pass are implemented as OpenCode-routed optional lanes: `nvidia-glm51-plan`, `nvidia-devstral2-plan`, and `nvidia-mistral-large3-plan`.
-  - `recommended-planners` is the non-iFlow multi-review lane set. It uses `opencode-minimax-plan` plus the three verified NVIDIA winners. It is not the default because NVIDIA still requires explicit OpenCode provider config plus `NVIDIA_API_KEY` on the machine.
+  - `recommended-planners` is the non-iFlow multi-review lane set. It uses `opencode-minimax-plan` plus the three verified NVIDIA winners. It also injects hybrid review lenses so every lane reviews the full artifact while spending extra attention on a different focus area. It is not the default because NVIDIA still requires explicit OpenCode provider config plus `NVIDIA_API_KEY` on the machine.
   - `nvidia-ministral3-plan` and `nvidia-glm5-plan` were intentionally not promoted: Mistral Large 3 is the stronger Mistral-family pick, and GLM-5.1 was faster than GLM5 in the bounded pass.
   - We currently treat `thinking` as requested behavior, not a universal backend guarantee; provider/model-specific semantics can still vary.
 

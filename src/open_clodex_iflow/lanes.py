@@ -17,6 +17,7 @@ class LanePreset:
     plan: bool = False
     thinking: bool = False
     write_authority: str = "plan-only"
+    review_lens: str = ""
     included_in_default_set: bool = False
 
 
@@ -76,6 +77,10 @@ def list_lane_presets() -> dict[str, LanePreset]:
             agent="plan",
             plan=True,
             thinking=False,
+            review_lens=(
+                "fast sanity/default reviewer: obvious blockers, proceed/fix/block triage, "
+                "low-latency confidence check"
+            ),
             included_in_default_set=True,
         ),
         "opencode-minimax-plan-thinking": LanePreset(
@@ -86,6 +91,7 @@ def list_lane_presets() -> dict[str, LanePreset]:
             agent="plan",
             plan=True,
             thinking=True,
+            review_lens="wildcard second opinion reviewer: broad unexpected-risk scan",
             included_in_default_set=False,
         ),
         "opencode-hy3-preview-plan-thinking": LanePreset(
@@ -126,6 +132,10 @@ def list_lane_presets() -> dict[str, LanePreset]:
             agent="plan",
             plan=True,
             thinking=False,
+            review_lens=(
+                "plan correctness reviewer: missing steps, sequencing, long-horizon reasoning, "
+                "orchestration logic"
+            ),
             included_in_default_set=False,
         ),
         "nvidia-devstral2-plan": LanePreset(
@@ -136,6 +146,10 @@ def list_lane_presets() -> dict[str, LanePreset]:
             agent="plan",
             plan=True,
             thinking=False,
+            review_lens=(
+                "implementation/code/runtime/test reviewer: code-level risks, runtime behavior, "
+                "test gaps, adapter/CLI failure modes"
+            ),
             included_in_default_set=False,
         ),
         "nvidia-mistral-large3-plan": LanePreset(
@@ -146,6 +160,10 @@ def list_lane_presets() -> dict[str, LanePreset]:
             agent="plan",
             plan=True,
             thinking=False,
+            review_lens=(
+                "architecture/senior reviewer: architecture boundaries, scope control, "
+                "maintainability, compatibility, long-term debt"
+            ),
             included_in_default_set=False,
         ),
         "opencode-minimax-build-thinking": LanePreset(
@@ -225,9 +243,10 @@ def render_lane_catalog() -> str:
         agent = preset.agent or "provider-default"
         thinking = "on" if preset.thinking else "off"
         plan_mode = "on" if preset.plan else "off"
+        lens = f" lens={preset.review_lens}" if preset.review_lens else ""
         lines.append(
             f"- {preset.lane_id}{default_marker}: provider={preset.provider} model={model} "
-            f"agent={agent} plan={plan_mode} thinking={thinking} write={preset.write_authority}"
+            f"agent={agent} plan={plan_mode} thinking={thinking} write={preset.write_authority}{lens}"
         )
     lines.extend(
         [

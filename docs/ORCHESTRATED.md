@@ -79,6 +79,14 @@
   - `nvidia-glm51-plan`
   - `nvidia-devstral2-plan`
   - `nvidia-mistral-large3-plan`
+- recommended planner lanes use hybrid review lenses:
+  - every lane reviews the full artifact
+  - every lane may report any blocker
+  - each lane gets extra attention instructions for its primary lens
+  - `opencode-minimax-plan`: fast sanity/default reviewer
+  - `nvidia-glm51-plan`: plan correctness reviewer
+  - `nvidia-devstral2-plan`: implementation/code/runtime/test reviewer
+  - `nvidia-mistral-large3-plan`: architecture/senior reviewer
 - optional OpenCode planner lanes are:
   - `opencode-minimax-plan-thinking`
   - `opencode-gpt5nano-plan-thinking`
@@ -114,6 +122,7 @@
 - `/solo` is a real packet-producing command and does not emit external packets
 - `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
 - `/orch --execution parallel` runs selected lanes concurrently while preserving per-lane artifact directories and deterministic aggregation order
+- `recommended-planners` now has explicit hybrid review lenses; lanes are not restricted to their lens and still review the whole artifact
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run
 - current live compatibility is versioned in `docs/PROVIDER_COMPATIBILITY.md`
 - debate loops, dedicated OS-window spawning, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts

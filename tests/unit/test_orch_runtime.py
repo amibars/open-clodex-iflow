@@ -342,6 +342,34 @@ def test_review_prompt_marks_unplanned_missing_providers_as_non_blocking():
     assert "not blocking when that provider is not planned" in prompt
 
 
+def test_review_prompt_includes_lane_lens_without_narrowing_scope():
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-04-30T00:00:00Z",
+        mode="orch",
+        task="review adapter runtime",
+        runtime_mode="headless",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["opencode"],
+        planned_lanes=["nvidia-devstral2-plan"],
+        provider_snapshot={
+            "opencode": {"available": True, "binary": "opencode", "readiness": "binary+state"},
+        },
+        next_step="Inspect runtime reviews.",
+    )
+    lane = list_lane_presets()["nvidia-devstral2-plan"]
+
+    prompt = runtime_module.build_review_prompt("opencode", artifact, lane=lane)
+
+    assert "Review the full artifact." in prompt
+    assert "Your primary lens is implementation/code/runtime/test reviewer" in prompt
+    assert "Do not limit yourself to that lens." in prompt
+    assert "Report any blocker you find." in prompt
+    assert "Spend extra attention on your primary lens." in prompt
+
+
 def write_iflow_stdout_provider_script(path: Path, provider: str) -> None:
     payload = {
         "provider": provider,

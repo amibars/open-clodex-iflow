@@ -55,6 +55,15 @@ This runs:
 - `nvidia-devstral2-plan`
 - `nvidia-mistral-large3-plan`
 
+The pack uses hybrid review lenses:
+
+- `opencode-minimax-plan`: fast sanity/default reviewer
+- `nvidia-glm51-plan`: plan correctness reviewer
+- `nvidia-devstral2-plan`: implementation/code/runtime/test reviewer
+- `nvidia-mistral-large3-plan`: architecture/senior reviewer
+
+Every lane still reviews the full artifact and can report any blocker. The lens only tells the model where to spend extra attention.
+
 Do not use this pack unless `opencode run --model nvidia/...` works on the machine. The lane set is implemented through OpenCode, not through a separate NVIDIA adapter.
 
 Run the selected lanes concurrently when you want a single-pass parallel review:
