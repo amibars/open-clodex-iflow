@@ -33,6 +33,12 @@
       ]
     },
     {
+      "source": "src/open_clodex_iflow/adapters/window_command.py",
+      "tests": [
+        "tests/unit/test_window_command.py"
+      ]
+    },
+    {
       "source": "src/open_clodex_iflow/orchestration/preflight.py",
       "tests": [
         "tests/unit/test_packets.py"

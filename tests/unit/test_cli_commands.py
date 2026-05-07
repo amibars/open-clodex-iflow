@@ -289,3 +289,56 @@ def test_orch_default_output_dir_is_trace_safe(monkeypatch, tmp_path):
     assert second_output_dir.name.startswith("trace-collision-")
     assert first_artifact["task"] == "audit bootstrap first"
     assert second_artifact["task"] == "audit bootstrap second"
+
+
+def test_orch_accepts_dedicated_windows_mode(monkeypatch, tmp_path):
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        cli,
+        "discover_cli_state",
+        lambda: {
+            "opencode": {"available": True, "binary": "opencode", "state_dirs": ["C:/fake/opencode"]},
+        },
+    )
+    artifact = ArtifactPacket(
+        trace_id="trace-test",
+        generated_at="2026-05-07T00:00:00Z",
+        mode="orch",
+        task="dedicated windows",
+        runtime_mode="dedicated-windows",
+        packet_stage="runtime-execution",
+        privacy_boundary="structured-packet-only",
+        fan_out_requested=True,
+        planned_providers=["opencode"],
+        planned_lanes=["opencode-minimax-plan"],
+        provider_snapshot={},
+        next_step="Inspect runtime reviews.",
+    )
+    review = ConsolidatedReview(
+        trace_id="trace-test",
+        generated_at="2026-05-07T00:00:01Z",
+        review_stage="runtime",
+        verdict="proceed",
+        provider_reviews=[],
+        next_action="Proceed",
+    )
+    monkeypatch.setattr(
+        cli,
+        "run_orchestration",
+        lambda **kwargs: captured.update(kwargs) or (artifact, review),
+    )
+
+    exit_code = cli.main(
+        [
+            "orch",
+            "dedicated windows",
+            "--mode",
+            "dedicated-windows",
+            "--output-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["runtime_mode"] == "dedicated-windows"

@@ -8,7 +8,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 - Keep `Codex` as the human-facing control plane
 - Support only two user modes: `solo` and `orch`
 - Reuse installed CLIs and existing auth/session state from the system first
-- Allow `windowed` and `headless` execution, with `windowed` as the default
+- Allow `windowed`, `headless`, and explicit Windows-only `dedicated-windows` execution, with `windowed` as the default
 - Generate and maintain the Iron Dome planning and quality artifacts before code-heavy development starts
 
 ## Commands
@@ -53,6 +53,7 @@ open-clodex-iflow solo "Summarize the current task"
 open-clodex-iflow orch "Review repository readiness" --mode headless
 open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --mode headless
 open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --execution parallel --mode headless
+open-clodex-iflow orch "Review repository readiness" --lane-set recommended-planners --execution parallel --mode dedicated-windows
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-hy3-preview-plan-thinking --mode headless
 open-clodex-iflow orch "Review repository readiness" --lanes opencode-minimax-build-thinking --mode headless
 open-clodex-iflow scaffold <target-workspace>
@@ -87,6 +88,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 - Secondary engineering guardrail: Ubuntu CI for Python/enforcement drift detection
 - This repo does not currently claim Linux desktop runtime parity for visible/windowed orchestration
 - Current `windowed` truth: operator-visible execution in the current terminal, not dedicated OS windows per lane
+- Current `dedicated-windows` truth: explicit Windows-only one-shot lane windows with JSON request/status capture, not persistent TUI sessions
 
 ## Required repo docs before runtime expansion
 
@@ -121,10 +123,11 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
   - per-provider `attempt.json`, `review.json`, `session.log`, and consolidated aggregation with synthetic failure fallback
   - `lanes`, `--lanes`, `--lane-set`, legacy `--providers`, and `--timeout-seconds` operator controls for runtime execution
   - optional `--execution parallel` for single-pass independent lane fan-out
+  - explicit `--mode dedicated-windows` for one-shot Windows console lane windows with captured artifacts
   - provider override config through `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - Not implemented yet:
   - debate loop or multi-pass fan-out
-  - dedicated OS-window spawning for each worker lane
+  - persistent Windows Terminal panes or attach-to-existing-window orchestration
 
 ## Current state
 

@@ -21,6 +21,7 @@
 - writes per-provider `attempt.json`, `review.json`, raw outputs, and one consolidated review
 - default runtime mode: `windowed`
 - optional runtime mode: `headless`
+- explicit Windows-only runtime mode: `dedicated-windows`
 - default execution mode: `sequential`
 - optional execution mode: `parallel`
 - default lane set: `default-planners`
@@ -105,8 +106,9 @@
 - no raw chat history handoff; only structured packets
 - no silent downgrade from `/orch` to `/solo`
 - no hidden reviewer with write authority over repo truth
-- `windowed` means operator-visible sequential execution in the current terminal flow; dedicated OS-window lanes require `docs/WINDOWED_RUNTIME_CONTRACT.md` compliance before being claimed
+- `windowed` means operator-visible execution in the current terminal flow
 - `headless` means capture-first execution without the current terminal as the primary review surface
+- `dedicated-windows` means explicit Windows-only one-shot lane windows with JSON request/status capture; it does not mean persistent TUI panes or native Codex slash-mode
 - timeout and retry semantics are governed by `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
 - `iflow` lane presets request `--plan`; `--thinking` is best-effort because `iflow` only enables it when the selected model supports it
 - OpenCode benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`; TUI-only models are not defaults until their CLI ids and non-interactive behavior are verified
@@ -122,10 +124,11 @@
 - `/solo` is a real packet-producing command and does not emit external packets
 - `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
 - `/orch --execution parallel` runs selected lanes concurrently while preserving per-lane artifact directories and deterministic aggregation order
+- `/orch --mode dedicated-windows` opens explicit Windows console lane windows while preserving stdout/stderr/status artifacts
 - `recommended-planners` now has explicit hybrid review lenses; lanes are not restricted to their lens and still review the whole artifact
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run
 - current live compatibility is versioned in `docs/PROVIDER_COMPATIBILITY.md`
-- debate loops, dedicated OS-window spawning, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
+- debate loops, persistent/attachable OS-window sessions, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
 
 ---
 

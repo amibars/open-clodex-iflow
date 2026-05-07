@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
+
+import pytest
 
 from open_clodex_iflow.contracts import ArtifactPacket
 from open_clodex_iflow.adapters import runtime as runtime_module
@@ -604,6 +607,93 @@ def test_run_orchestration_parallel_timeout_does_not_cancel_sibling_lane(tmp_pat
 def test_select_runner_returns_expected_execution_function():
     assert runtime_module.select_runner("headless") is runtime_module.execute_headless
     assert runtime_module.select_runner("windowed") is runtime_module.execute_visible
+    assert runtime_module.select_runner("dedicated-windows") is runtime_module.execute_dedicated_windows
+
+
+def test_dedicated_window_launch_command_uses_json_request_not_prompt_shell():
+    command = runtime_module.build_dedicated_window_launch_command(
+        title="trace-test opencode-minimax-plan",
+        request_path=Path("C:/tmp/request.json"),
+        python_executable=Path("C:/Python/python.exe"),
+    )
+
+    assert command[:5] == ["cmd.exe", "/d", "/s", "/c", "start"]
+    assert "/wait" in command
+    assert "-m" in command
+    assert "open_clodex_iflow.adapters.window_command" in command
+    assert "review prompt" not in " ".join(command).lower()
+
+
+def test_execute_dedicated_windows_round_trips_request_and_status(monkeypatch, tmp_path):
+    captured: dict[str, object] = {}
+    stdout_path = tmp_path / "stdout.txt"
+    stderr_path = tmp_path / "stderr.txt"
+
+    monkeypatch.setattr(runtime_module, "dedicated_windows_available", lambda: True)
+
+    def fake_run(command, **kwargs):
+        request = json.loads(Path(command[-1]).read_text(encoding="utf-8"))
+        captured["launch_command"] = command
+        captured["request"] = request
+        Path(request["stdout_path"]).write_text("captured stdout", encoding="utf-8")
+        Path(request["stderr_path"]).write_text("captured stderr", encoding="utf-8")
+        Path(request["status_path"]).write_text(
+            json.dumps({"exit_code": 0, "timed_out": False}),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(runtime_module.subprocess, "run", fake_run)
+
+    exit_code, stdout_text, stderr_text = runtime_module.execute_dedicated_windows(
+        "opencode",
+        command=[sys.executable, "-c", "print('hidden prompt never reaches shell')"],
+        workdir=tmp_path,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        timeout_seconds=3,
+        extra_env={"OCIFLOW_TEST": "1"},
+    )
+
+    request = captured["request"]
+    assert exit_code == 0
+    assert stdout_text == "captured stdout"
+    assert stderr_text == "captured stderr"
+    assert request["env"] == {"OCIFLOW_TEST": "1"}
+    assert request["command"][0] == sys.executable
+    assert captured["launch_command"][:5] == ["cmd.exe", "/d", "/s", "/c", "start"]
+
+
+def test_execute_dedicated_windows_raises_timeout_from_status(monkeypatch, tmp_path):
+    stdout_path = tmp_path / "stdout.txt"
+    stderr_path = tmp_path / "stderr.txt"
+
+    monkeypatch.setattr(runtime_module, "dedicated_windows_available", lambda: True)
+
+    def fake_run(command, **kwargs):
+        request = json.loads(Path(command[-1]).read_text(encoding="utf-8"))
+        Path(request["stdout_path"]).write_text("partial stdout", encoding="utf-8")
+        Path(request["stderr_path"]).write_text("partial stderr", encoding="utf-8")
+        Path(request["status_path"]).write_text(
+            json.dumps({"exit_code": None, "timed_out": True}),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 124, "", "")
+
+    monkeypatch.setattr(runtime_module.subprocess, "run", fake_run)
+
+    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
+        runtime_module.execute_dedicated_windows(
+            "opencode",
+            command=[sys.executable, "-c", "print('partial stdout')"],
+            workdir=tmp_path,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            timeout_seconds=1,
+        )
+
+    assert excinfo.value.output == "partial stdout"
+    assert excinfo.value.stderr == "partial stderr"
 
 
 def test_parse_review_text_extracts_review_from_wrapped_opencode_events():

@@ -58,15 +58,17 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
 - ✅ Keeps orchestration deterministic inside hidden internal stages
 - ⚠️ Internal pipeline must remain explicit in code and docs
 
-### ADR-003: Windowed default
+### ADR-003: Windowed default and explicit dedicated windows
 
 **Decision:** `/orch` defaults to `windowed`, with `headless` as explicit opt-in.
+`dedicated-windows` is an explicit Windows-only mode for one-shot lane windows with artifact capture.
 
 **Consequences:**
 
 - ✅ Better operator observability
-- ⚠️ Current v1 `windowed` means operator-visible sequential execution in the current terminal flow
-- ⚠️ Dedicated OS-window spawning is a future backend and must satisfy `docs/WINDOWED_RUNTIME_CONTRACT.md` before it is claimed as implemented
+- ✅ Dedicated windows keep the provider prompt out of the shell command line by using JSON request files
+- ⚠️ Current v1 `windowed` means operator-visible execution in the current terminal flow
+- ⚠️ Current `dedicated-windows` is not persistent TUI pane control or native Codex slash-mode
 
 ---
 
@@ -80,7 +82,7 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
   "generated_at": "2026-04-11T12:00:00Z",
   "mode": "solo | orch",
   "task": "short task summary",
-  "runtime_mode": "windowed | headless | null",
+  "runtime_mode": "windowed | headless | dedicated-windows | null",
   "packet_stage": "bootstrap-preflight | runtime-execution",
   "privacy_boundary": "codex-only | structured-packet-only",
   "fan_out_requested": true,
@@ -114,7 +116,7 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
   "tests_to_add": ["..."],
   "plan_risks": ["..."],
   "confidence": "low | medium | high",
-  "runtime_mode": "windowed | headless",
+  "runtime_mode": "windowed | headless | dedicated-windows",
   "raw_output_file": "providers/claude/raw_output.txt",
   "log_file": "providers/claude/stdout.txt"
 }

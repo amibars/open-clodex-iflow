@@ -50,9 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     orch.add_argument("task", nargs="?", default="", help="Optional orchestration task")
     orch.add_argument(
         "--mode",
-        choices=["windowed", "headless"],
+        choices=["windowed", "headless", "dedicated-windows"],
         default="windowed",
-        help="Worker execution mode",
+        help="Worker execution mode; windowed streams in the current terminal, dedicated-windows opens OS windows on Windows",
     )
     orch.add_argument(
         "--output-dir",

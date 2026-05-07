@@ -2,7 +2,7 @@
 
 # Operator Runbook
 
-> This runbook describes the current v1 workflow of `open-clodex-iflow` as it exists today: Windows-first, external sidecar CLI, sequential `/orch`, and lane presets instead of Codex patching.
+> This runbook describes the current v1 workflow of `open-clodex-iflow` as it exists today: Windows-first, external sidecar CLI, sequential-by-default `/orch`, optional parallel lane execution, explicit dedicated Windows windows, and lane presets instead of Codex patching.
 
 ---
 
@@ -73,6 +73,14 @@ open-clodex-iflow /orch "Review the current task" --lane-set recommended-planner
 ```
 
 Parallel execution is still one independent review pass per lane. It is not a debate loop.
+
+Open separate one-shot Windows console windows for each selected lane when you want to watch worker lanes outside the current terminal:
+
+```powershell
+open-clodex-iflow /orch "Review the current task" --lane-set recommended-planners --execution parallel --mode dedicated-windows
+```
+
+`dedicated-windows` still writes the normal lane artifacts. Treat it as a visible execution backend, not as persistent TUI control. It does not attach to windows you opened manually and it does not patch Codex slash commands.
 
 Run only the lanes you want:
 
@@ -145,7 +153,8 @@ Synthetic failures are still useful operational evidence, but they do not prove 
 
 ## 7. Important caveats
 
-- `windowed` means operator-visible execution in the current terminal, not dedicated OS windows per lane.
+- `windowed` means operator-visible execution in the current terminal.
+- `dedicated-windows` opens one-shot Windows console windows per lane and captures stdout/stderr/status through request artifacts; it is not Windows Terminal pane management or persistent TUI control.
 - `iflow` is explicit opt-in after the April 2026 shutdown/API-key drift; `--thinking` is still best-effort when you use an iFlow lane.
 - `opencode` planner/build lanes are driven through `--agent`, not through TUI automation.
 - This repo does not currently patch Codex or add a native slash mode inside the Codex app itself.

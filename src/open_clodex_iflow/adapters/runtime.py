@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -564,10 +565,120 @@ def execute_visible(
     return return_code, stdout_text, ""
 
 
+def dedicated_windows_available() -> bool:
+    return os.name == "nt" and bool(shutil.which("cmd.exe") or shutil.which("cmd"))
+
+
+def build_dedicated_window_launch_command(
+    *,
+    title: str,
+    request_path: Path,
+    python_executable: Path | None = None,
+) -> list[str]:
+    return [
+        "cmd.exe",
+        "/d",
+        "/s",
+        "/c",
+        "start",
+        title,
+        "/wait",
+        str(python_executable or Path(sys.executable)),
+        "-m",
+        "open_clodex_iflow.adapters.window_command",
+        str(request_path),
+    ]
+
+
+def execute_dedicated_windows(
+    provider: str,
+    *,
+    command: list[str],
+    workdir: Path,
+    stdout_path: Path,
+    stderr_path: Path,
+    timeout_seconds: int,
+    extra_env: dict[str, str] | None = None,
+) -> tuple[int, str, str]:
+    if not dedicated_windows_available():
+        raise RuntimeError("dedicated-windows mode requires Windows cmd.exe")
+
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stderr_path.parent.mkdir(parents=True, exist_ok=True)
+    status_path = stdout_path.parent / "dedicated_window_status.json"
+    request_path = stdout_path.parent / "dedicated_window_request.json"
+    request_path.write_text(
+        json.dumps(
+            {
+                "command": command,
+                "cwd": str(workdir),
+                "stdout_path": str(stdout_path),
+                "stderr_path": str(stderr_path),
+                "status_path": str(status_path),
+                "timeout_seconds": timeout_seconds,
+                "env": extra_env or {},
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    launch_command = build_dedicated_window_launch_command(
+        title=f"open-clodex-iflow {provider}",
+        request_path=request_path,
+    )
+    try:
+        launcher = subprocess.run(
+            launch_command,
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=timeout_seconds + 30,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stdout_text = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else ""
+        stderr_text = stderr_path.read_text(encoding="utf-8") if stderr_path.exists() else ""
+        raise subprocess.TimeoutExpired(
+            command,
+            timeout_seconds,
+            output=stdout_text,
+            stderr=stderr_text or exc.stderr,
+        ) from exc
+
+    stdout_text = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else ""
+    stderr_text = stderr_path.read_text(encoding="utf-8") if stderr_path.exists() else ""
+    if not status_path.exists():
+        launcher_error = (launcher.stderr or launcher.stdout).strip()
+        raise RuntimeError(
+            "dedicated window helper did not write status"
+            + (f": {launcher_error}" if launcher_error else "")
+        )
+
+    try:
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"dedicated window helper wrote invalid status: {exc}") from exc
+    if status.get("timed_out"):
+        raise subprocess.TimeoutExpired(
+            command,
+            timeout_seconds,
+            output=stdout_text,
+            stderr=stderr_text,
+        )
+
+    exit_code = status.get("exit_code")
+    if not isinstance(exit_code, int):
+        exit_code = launcher.returncode
+    return exit_code, stdout_text, stderr_text
+
+
 def select_runner(runtime_mode: str):
     runners = {
         "headless": execute_headless,
         "windowed": execute_visible,
+        "dedicated-windows": execute_dedicated_windows,
     }
     try:
         return runners[runtime_mode]
@@ -619,7 +730,7 @@ def run_provider_review(
     started_at = utc_now_iso()
     try:
         return_code, stdout_text, stderr_text = runner(
-            provider,
+            lane_id_for(provider, lane),
             command=command,
             workdir=provider_workdir,
             stdout_path=stdout_path,
@@ -721,6 +832,46 @@ def run_provider_review(
                 "Provider timed out before producing a valid review; inspect stdout/stderr "
                 "and raw output before retrying."
             ),
+        )
+        return review
+    except (OSError, RuntimeError) as exc:
+        failure_note = f"{provider} runtime launch failed: {exc}"
+        stdout_text = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else ""
+        stderr_text = stderr_path.read_text(encoding="utf-8") if stderr_path.exists() else ""
+        if not stdout_path.exists():
+            stdout_path.write_text("", encoding="utf-8")
+        if not stderr_path.exists():
+            stderr_path.write_text(str(exc), encoding="utf-8")
+            stderr_text = str(exc)
+        raw_output_path.write_text(stdout_text, encoding="utf-8")
+        review = synthetic_failure_review(
+            provider,
+            failure_note,
+            runtime_mode=runtime_mode,
+            raw_output_file=raw_output_path,
+            log_file=stderr_path if stderr_text else stdout_path,
+            lane=lane,
+        )
+        write_json(review_path, review)
+        write_attempt_record(
+            attempt_path,
+            artifact=artifact,
+            provider=provider,
+            lane=lane,
+            runtime_mode=runtime_mode,
+            state="failed",
+            started_at=started_at,
+            timeout_seconds=timeout_seconds,
+            process_terminated=False,
+            exit_code=None,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            raw_output_path=raw_output_path,
+            review_path=review_path,
+            command_shape=command_shape,
+            cwd=provider_workdir,
+            retryable=True,
+            operator_inspection_hint="Provider runtime did not launch cleanly; inspect stdout/stderr and retry.",
         )
         return review
 

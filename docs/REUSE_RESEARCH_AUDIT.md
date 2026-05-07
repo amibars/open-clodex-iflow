@@ -14,7 +14,7 @@ This is a reference audit, not a decision to vendor code. The current v1 product
 - Running `/solo` with no fan-out.
 - Running `/orch` as intake, preflight, sequential-by-default provider execution, optional single-pass parallel execution, and consolidated review.
 - Keeping provider outputs constrained by `artifact.json`, `review.json`, and `consolidated_review.json`.
-- Defaulting to operator-visible behavior while not yet claiming dedicated OS-window spawning.
+- Defaulting to current-terminal operator-visible behavior and offering explicit one-shot Windows `dedicated-windows` lane windows.
 - Treating debate loops, mailbox routing, and memory as future layers rather than hidden v1 features.
 
 Any external reuse must preserve these boundaries.
@@ -82,9 +82,9 @@ For `open-clodex-iflow`, timeout records should preserve:
 
 This supports the current docs promise of honest provider-dependent truth.
 
-### 3. Dedicated OS-window spawning is a separate subsystem, not a small flag.
+### 3. Dedicated OS-window spawning must stay capture-first, not window-noise-first.
 
-CCB's Windows notes point to a real mux/window backend contract. For our project, "windowed" should not be silently redefined as "real OS panes" until we have:
+CCB's Windows notes point to a real mux/window backend contract. For our project, `windowed` must stay current-terminal visible execution, while `dedicated-windows` is the explicit backend for separate one-shot OS windows. Dedicated windows are only useful when they preserve:
 
 - capability detection,
 - backend contract,
@@ -92,9 +92,9 @@ CCB's Windows notes point to a real mux/window backend contract. For our project
 - command injection boundaries,
 - capture semantics,
 - cleanup/kill behavior,
-- Windows Terminal or psmux trade-off documented.
+- Windows Terminal or psmux trade-off documented before claiming persistent pane control.
 
-Current v1 should keep saying: visible/sequential provider output is implemented; dedicated OS-window worker lanes are deferred.
+Current v1 should keep saying: current-terminal `windowed` is implemented, one-shot Windows `dedicated-windows` is implemented, persistent/attachable pane orchestration remains future scope.
 
 ### 4. API bridge is valuable, but should remain optional.
 
@@ -171,8 +171,8 @@ These are the next useful docs/tasks before expanding runtime scope:
 1. Add `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`.
    Define attempt state, timeout behavior, partial-output preservation, retry policy, and operator inspection output.
 
-2. Add `docs/WINDOWED_RUNTIME_CONTRACT.md`.
-   Define current visible sequential mode vs future dedicated OS-window spawning, including Windows backend candidates and capability gates.
+2. Keep `docs/WINDOWED_RUNTIME_CONTRACT.md` updated.
+   Define current-terminal visible mode, explicit one-shot `dedicated-windows`, and the remaining gap to persistent pane/session orchestration.
 
 3. Add `docs/SECURITY_THREAT_MODEL.md`.
    Cover CLI reuse, OAuth/auth-state boundaries, provider subprocesses, prompt injection, MCP/plugin risks, and memory risks.
@@ -194,7 +194,7 @@ These are the next useful docs/tasks before expanding runtime scope:
 - No hidden AGPL code reuse.
 - No implicit API server.
 - No automatic installation of memory hooks or MCP servers.
-- No claim that current `windowed` equals dedicated external OS panes.
+- No claim that current `windowed` equals dedicated external OS panes; that is only `--mode dedicated-windows`.
 - No parallel debate loop until message, attempt, timeout, fan-out, and aggregation contracts are written.
 
 ## Source Notes

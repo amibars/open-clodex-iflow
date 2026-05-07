@@ -41,7 +41,7 @@
 | FR-03 | Orch mode | `/orch` собирает artifact packet, запускает runnable provider adapters, пишет per-provider `attempt.json`/`review.json` и возвращает один consolidated review | P0 | Implemented as sequential default runtime with optional single-pass parallel execution and synthetic failure fallback |
 | FR-04 | System discovery | `doctor` показывает найденные CLI и локальные state/auth директории | P0 | Implemented |
 | FR-05 | Existing auth reuse | Оркестратор сначала пытается использовать уже существующие системные CLI и их local state | P0 | Implemented for discovery/preflight |
-| FR-06 | Runtime mode toggle | `/orch` поддерживает `windowed` и `headless`, при этом по умолчанию используется `windowed` | P1 | Implemented as visible sequential-by-default runtime; dedicated OS-window lanes deferred |
+| FR-06 | Runtime mode toggle | `/orch` поддерживает `windowed`, `headless` и explicit Windows-only `dedicated-windows`, при этом по умолчанию используется `windowed` | P1 | Implemented as visible current-terminal default plus explicit one-shot Windows console lane windows |
 | FR-07 | Custom API fallback | Можно задать custom API/base URL как override, если reuse existing auth невозможен | P1 | Planned |
 
 ---
