@@ -14,7 +14,7 @@ It bootstraps Iron Dome-compatible project structure and provides a reuse-first 
 ## Commands
 
 - `solo`: private work mode that writes a local `artifact.json` packet and never fans out
-- `orch`: sequential-by-default runtime orchestration that writes `artifact.json`, per-lane `attempt.json` and `review.json`, `session.log`, and `consolidated_review.json`; `--execution parallel` runs selected lanes concurrently in one independent review pass
+- `orch`: sequential-by-default runtime orchestration that writes `artifact.json`, per-lane `attempt.json` and `review.json`, `session.log`, and `consolidated_review.json`; `--execution parallel` runs provider groups concurrently while serializing lanes that share one provider
 - `lanes`: inspect default lane presets, optional lanes, and the operator toggles that control them
 - `doctor`: inspect installed CLIs and available local state
 - `scaffold`: bootstrap an Iron Dome-compatible workspace in a target directory
@@ -122,7 +122,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
   - lane presets with a default planner pack and explicit optional write-capable lanes
   - per-provider `attempt.json`, `review.json`, `session.log`, and consolidated aggregation with synthetic failure fallback
   - `lanes`, `--lanes`, `--lane-set`, legacy `--providers`, and `--timeout-seconds` operator controls for runtime execution
-  - optional `--execution parallel` for single-pass independent lane fan-out
+  - optional provider-aware `--execution parallel` for single-pass independent lane fan-out
   - explicit `--mode dedicated-windows` for one-shot Windows console lane windows with captured artifacts
   - provider override config through `.open-clodex-iflow/providers.json` or `OPEN_CLODEX_IFLOW_PROVIDER_CONFIG`
 - Not implemented yet:
@@ -131,7 +131,7 @@ Check `docs/PROVIDER_COMPATIBILITY.md` for the latest live snapshot before treat
 
 ## Current state
 
-This repository is a working sequential-by-default v1 orchestrator baseline with explicit single-pass parallel lane execution available through `--execution parallel`.
+This repository is a working sequential-by-default v1 orchestrator baseline with explicit provider-aware single-pass parallel lane execution available through `--execution parallel`.
 The runtime path for `/orch` is implemented for runnable providers (`claude`, `iflow`, `opencode`) and no longer stops at preflight-only orchestration.
 Adapter support in code is not the same as guaranteed live success. The current default path is success-documented for `opencode` on this machine. `claude` has prior live-success evidence after quota reset. `iflow` has historical success evidence but is now explicit legacy/API-key only after shutdown/API-key drift.
 See `docs/PROVIDER_COMPATIBILITY.md` for the latest documented smoke snapshot and interpretation rules.

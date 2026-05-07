@@ -22,7 +22,7 @@
 | Переключение `/solo` vs `/orch` | Implemented | `/solo` stays private; `/orch` executes runnable reviewer adapters and aggregates their output |
 | Reuse existing CLI/auth state | Implemented for discovery/runtime selection | `doctor` and runtime adapter selection reuse installed binaries and known state dirs |
 | Scaffold disciplined starter workspace | Implemented | `scaffold` writes the full current repo-native bootstrap document set |
-| Windowed default orchestration | Implemented as visible sequential-by-default runtime | `/orch` defaults to `windowed`; `--execution parallel` can run selected lanes concurrently |
+| Windowed default orchestration | Implemented as visible sequential-by-default runtime | `/orch` defaults to `windowed`; `--execution parallel` can run provider groups concurrently while serializing same-provider lanes |
 | Dedicated Windows lane visibility | Implemented as explicit Windows-only one-shot mode | `--mode dedicated-windows` opens separate console lane windows with JSON request/status capture; it is not persistent TUI pane control |
 
 ---

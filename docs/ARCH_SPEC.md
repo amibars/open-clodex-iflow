@@ -175,7 +175,7 @@ Dependency direction for runtime code is one-way: `cli -> orchestration -> adapt
 
 - `/solo` writes only `artifact.json`
 - `/orch` writes `artifact.json`, per-provider `attempt.json`, per-provider `review.json`, `session.log`, and `consolidated_review.json`
-- runtime is sequential by default and uses only runnable providers with explicit adapter support; `--execution parallel` runs selected lanes concurrently in one independent review pass
+- runtime is sequential by default and uses only runnable providers with explicit adapter support; `--execution parallel` runs provider groups concurrently and serializes lanes that share one provider
 - provider timeouts and synthetic failures must preserve inspectable evidence according to `docs/ATTEMPT_TIMEOUT_RETRY_CONTRACT.md`
 - current `windowed` behavior is defined by `docs/WINDOWED_RUNTIME_CONTRACT.md` and does not claim dedicated OS windows per lane
 - explicit provider override config exists for local command/env/base URL configuration

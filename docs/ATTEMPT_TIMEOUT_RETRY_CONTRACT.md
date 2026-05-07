@@ -136,4 +136,4 @@ Runtime tests must cover:
 
 ## Current Implementation Status
 
-Current v1 writes `attempt.json` for provider lanes and preserves timeout/invalid/failure evidence separately from normalized `review.json`. Runtime remains sequential by default; optional `--execution parallel` runs selected lanes concurrently in a single pass. Retry loops and debate loops are still not implemented.
+Current v1 writes `attempt.json` for provider lanes and preserves timeout/invalid/failure evidence separately from normalized `review.json`. Runtime remains sequential by default; optional `--execution parallel` runs provider groups concurrently and serializes lanes that share one provider. Retry loops and debate loops are still not implemented.

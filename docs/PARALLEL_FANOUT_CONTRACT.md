@@ -119,6 +119,7 @@ Default remains `sequential`; `parallel` must be requested explicitly.
 ## Tests Required Before Implementation Claim
 
 - two fake providers run concurrently and total runtime proves parallelism,
+- lanes that share one provider are serialized to avoid shared local state collisions,
 - each lane writes isolated `attempt.json`, `review.json`, `stdout.txt`, `stderr.txt`, and `raw_output.txt`,
 - one lane timeout does not kill successful sibling lanes,
 - one invalid lane becomes synthetic failure without corrupting sibling lane outputs,
@@ -127,4 +128,4 @@ Default remains `sequential`; `parallel` must be requested explicitly.
 
 ## Current Implementation Status
 
-Implemented for optional single-pass parallel lane execution through `--execution parallel`. Not implemented: debate loops, multi-pass review, automatic retry, or dedicated OS-window fan-out.
+Implemented for optional provider-aware single-pass parallel lane execution through `--execution parallel`. Different provider groups can run concurrently; lanes sharing one provider are serialized. Not implemented: debate loops, multi-pass review, or automatic retry.

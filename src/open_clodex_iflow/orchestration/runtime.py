@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict
 from pathlib import Path
 
 from open_clodex_iflow.adapters.discovery import load_provider_override_config
@@ -165,14 +166,30 @@ def run_orchestration(
         )
 
     if execution_mode == "parallel" and len(execution_lanes) > 1:
+        lanes_by_provider: dict[str, list[tuple[int, LanePreset]]] = defaultdict(list)
+        for index, lane in enumerate(execution_lanes):
+            lanes_by_provider[lane.provider].append((index, lane))
+        for provider, provider_lanes in lanes_by_provider.items():
+            if len(provider_lanes) > 1:
+                session_log_lines.append(
+                    f"provider_concurrency={provider}:serialized:{len(provider_lanes)}"
+                )
+
+        def execute_provider_group(indexed_lanes: list[tuple[int, LanePreset]]):
+            return [
+                (index, execute_lane(lane))
+                for index, lane in indexed_lanes
+            ]
+
         ordered_reviews = [None] * len(execution_lanes)
-        with ThreadPoolExecutor(max_workers=len(execution_lanes)) as executor:
+        with ThreadPoolExecutor(max_workers=len(lanes_by_provider)) as executor:
             futures = {
-                executor.submit(execute_lane, lane): index
-                for index, lane in enumerate(execution_lanes)
+                executor.submit(execute_provider_group, provider_lanes): provider
+                for provider, provider_lanes in lanes_by_provider.items()
             }
             for future in as_completed(futures):
-                ordered_reviews[futures[future]] = future.result()
+                for index, provider_review in future.result():
+                    ordered_reviews[index] = provider_review
         provider_reviews = [review for review in ordered_reviews if review is not None]
     else:
         provider_reviews = [execute_lane(lane) for lane in execution_lanes]

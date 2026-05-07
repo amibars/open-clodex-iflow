@@ -100,7 +100,7 @@ time.sleep({seconds})
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
 
-def write_parallel_sleep_provider_script(path: Path, *, seconds: float) -> None:
+def write_parallel_sleep_provider_script(path: Path, provider: str, *, seconds: float) -> None:
     script = f"""
 from __future__ import annotations
 
@@ -111,11 +111,52 @@ import time
 args = sys.argv[1:]
 model = ""
 for index, value in enumerate(args):
-    if value == "--model" and index + 1 < len(args):
+    if value in ("--model", "-m") and index + 1 < len(args):
         model = args[index + 1]
         break
 
 time.sleep({seconds})
+
+print(json.dumps({{
+    "provider": {provider!r},
+    "verdict": "proceed",
+    "summary": model or "provider-default",
+    "blocking_findings": [],
+    "non_blocking_notes": [],
+    "tests_to_add": [],
+    "plan_risks": [],
+    "confidence": "high"
+}}))
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_lock_sensitive_provider_script(path: Path, lock_path: Path, *, seconds: float) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+import time
+from pathlib import Path
+
+lock_path = Path({str(lock_path)!r})
+args = sys.argv[1:]
+model = ""
+for index, value in enumerate(args):
+    if value in ("--model", "-m") and index + 1 < len(args):
+        model = args[index + 1]
+        break
+
+if lock_path.exists():
+    print("provider concurrency lock collision", file=sys.stderr)
+    raise SystemExit(17)
+
+lock_path.write_text(model or "provider-default", encoding="utf-8")
+try:
+    time.sleep({seconds})
+finally:
+    lock_path.unlink(missing_ok=True)
 
 print(json.dumps({{
     "provider": "opencode",
@@ -522,17 +563,29 @@ def test_run_orchestration_defaults_to_lane_aware_planner_pack(tmp_path):
     assert (tmp_path / "session" / "providers" / "opencode-minimax-plan" / "review.json").exists()
 
 
-def test_run_orchestration_parallel_execution_runs_lanes_concurrently(tmp_path):
-    script_path = tmp_path / "opencode.py"
+def test_run_orchestration_parallel_execution_runs_different_providers_concurrently(tmp_path):
+    opencode_script_path = tmp_path / "opencode.py"
+    iflow_script_path = tmp_path / "iflow.py"
     write_parallel_sleep_provider_script(
-        script_path,
+        opencode_script_path,
+        "opencode",
+        seconds=0.8,
+    )
+    write_parallel_sleep_provider_script(
+        iflow_script_path,
+        "iflow",
         seconds=0.8,
     )
     snapshot = {
         "opencode": {
             "available": True,
-            "binary": str(script_path),
+            "binary": str(opencode_script_path),
             "state_dirs": ["C:/fake/opencode"],
+        },
+        "iflow": {
+            "available": True,
+            "binary": str(iflow_script_path),
+            "state_dirs": ["C:/fake/iflow"],
         }
     }
 
@@ -542,7 +595,7 @@ def test_run_orchestration_parallel_execution_runs_lanes_concurrently(tmp_path):
         runtime_mode="headless",
         execution_mode="parallel",
         provider_snapshot=snapshot,
-        requested_lanes=["opencode-minimax-plan", "nvidia-glm51-plan"],
+        requested_lanes=["opencode-minimax-plan", "iflow-qwen3coder-plan"],
         timeout_seconds=5,
         output_dir=tmp_path / "session",
         python_executable=Path(sys.executable),
@@ -553,12 +606,44 @@ def test_run_orchestration_parallel_execution_runs_lanes_concurrently(tmp_path):
     assert review.verdict == "proceed"
     assert [item.lane_id for item in review.provider_reviews] == [
         "opencode-minimax-plan",
-        "nvidia-glm51-plan",
+        "iflow-qwen3coder-plan",
     ]
     assert (tmp_path / "session" / "providers" / "opencode-minimax-plan" / "attempt.json").exists()
-    assert (tmp_path / "session" / "providers" / "nvidia-glm51-plan" / "attempt.json").exists()
+    assert (tmp_path / "session" / "providers" / "iflow-qwen3coder-plan" / "attempt.json").exists()
     session_log = (tmp_path / "session" / "session.log").read_text(encoding="utf-8")
     assert "execution_mode=parallel" in session_log
+
+
+def test_run_orchestration_parallel_serializes_same_provider_lanes(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_lock_sensitive_provider_script(
+        script_path,
+        tmp_path / "opencode.lock",
+        seconds=0.2,
+    )
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="provider lock smoke",
+        runtime_mode="headless",
+        execution_mode="parallel",
+        provider_snapshot=snapshot,
+        requested_lanes=["opencode-minimax-plan", "nvidia-glm51-plan"],
+        timeout_seconds=5,
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    assert review.verdict == "proceed"
+    assert [item.review_stage for item in review.provider_reviews] == ["runtime", "runtime"]
+    session_log = (tmp_path / "session" / "session.log").read_text(encoding="utf-8")
+    assert "provider_concurrency=opencode:serialized:2" in session_log
 
 
 def test_run_orchestration_parallel_timeout_does_not_cancel_sibling_lane(tmp_path):

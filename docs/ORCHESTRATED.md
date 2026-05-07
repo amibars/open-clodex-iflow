@@ -114,7 +114,7 @@
 - OpenCode benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`; TUI-only models are not defaults until their CLI ids and non-interactive behavior are verified
 - NVIDIA lane presets are routed through OpenCode and require an OpenCode `nvidia` provider config plus `NVIDIA_API_KEY`; they replace iFlow in the recommended planner set, not in the legacy adapter layer
 - legacy `--providers` remains available as a compatibility path when operator wants raw provider routing instead of lane presets
-- `--execution parallel` runs selected lanes concurrently in a single pass; it does not enable debate, retry loops, or write authority
+- `--execution parallel` runs provider groups concurrently in a single pass and serializes lanes that share one provider; it does not enable debate, retry loops, or write authority
 
 ---
 
@@ -123,7 +123,7 @@
 - `doctor` and orchestration preflight already reuse system discovery and known state dirs
 - `/solo` is a real packet-producing command and does not emit external packets
 - `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
-- `/orch --execution parallel` runs selected lanes concurrently while preserving per-lane artifact directories and deterministic aggregation order
+- `/orch --execution parallel` runs provider groups concurrently while preserving per-lane artifact directories, deterministic aggregation order, and same-provider serialization
 - `/orch --mode dedicated-windows` opens explicit Windows console lane windows while preserving stdout/stderr/status artifacts
 - `recommended-planners` now has explicit hybrid review lenses; lanes are not restricted to their lens and still review the whole artifact
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run

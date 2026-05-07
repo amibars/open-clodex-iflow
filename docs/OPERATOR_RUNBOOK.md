@@ -66,13 +66,14 @@ Every lane still reviews the full artifact and can report any blocker. The lens 
 
 Do not use this pack unless `opencode run --model nvidia/...` works on the machine. The lane set is implemented through OpenCode, not through a separate NVIDIA adapter.
 
-Run the selected lanes concurrently when you want a single-pass parallel review:
+Run provider groups concurrently when you want a single-pass parallel review:
 
 ```powershell
 open-clodex-iflow /orch "Review the current task" --lane-set recommended-planners --execution parallel --mode headless
 ```
 
 Parallel execution is still one independent review pass per lane. It is not a debate loop.
+Lanes that share one provider are serialized inside that provider group to avoid local provider state conflicts such as OpenCode `database is locked`.
 
 Open separate one-shot Windows console windows for each selected lane when you want to watch worker lanes outside the current terminal:
 
@@ -81,6 +82,7 @@ open-clodex-iflow /orch "Review the current task" --lane-set recommended-planner
 ```
 
 `dedicated-windows` still writes the normal lane artifacts. Treat it as a visible execution backend, not as persistent TUI control. It does not attach to windows you opened manually and it does not patch Codex slash commands.
+When the selected lanes all route through OpenCode, `--execution parallel` will still open them one at a time because they share the same OpenCode state database.
 
 Run only the lanes you want:
 
