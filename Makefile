@@ -1,7 +1,7 @@
-.PHONY: help check-fast check enforce generated-pack tdd test-enforcement test-skeleton test-unit test-integration scan lint
+.PHONY: help check-fast check enforce generated-pack overlays tdd test-enforcement test-skeleton test-unit test-integration scan lint
 
 help:
-	@echo "Available targets: help, check-fast, check, lint, enforce, generated-pack, tdd, test-enforcement, test-skeleton, test-unit, test-integration, scan"
+	@echo "Available targets: help, check-fast, check, lint, enforce, generated-pack, overlays, tdd, test-enforcement, test-skeleton, test-unit, test-integration, scan"
 
 check-fast: lint enforce tdd test-unit
 
@@ -11,9 +11,13 @@ enforce:
 	@python enforcement/deps_rules.py
 	@python scripts/validate_story.py --all
 	@python scripts/check_generated_pack.py
+	@python scripts/validate_overlays.py
 
 generated-pack:
 	@python scripts/check_generated_pack.py
+
+overlays:
+	@python scripts/validate_overlays.py
 
 tdd:
 	@python enforcement/tdd_guard.py
