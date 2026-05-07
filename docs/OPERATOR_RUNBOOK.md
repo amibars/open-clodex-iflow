@@ -57,6 +57,14 @@ This runs:
 
 Do not use this pack unless `opencode run --model nvidia/...` works on the machine. The lane set is implemented through OpenCode, not through a separate NVIDIA adapter.
 
+Run the selected lanes concurrently when you want a single-pass parallel review:
+
+```powershell
+open-clodex-iflow /orch "Review the current task" --lane-set recommended-planners --execution parallel --mode headless
+```
+
+Parallel execution is still one independent review pass per lane. It is not a debate loop.
+
 Run only the lanes you want:
 
 ```powershell

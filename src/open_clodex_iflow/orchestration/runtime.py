@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from open_clodex_iflow.adapters.discovery import load_provider_override_config
@@ -47,9 +48,13 @@ def run_orchestration(
     requested_lanes: list[str] | None = None,
     lane_set: str | None = None,
     timeout_seconds: int = 180,
+    execution_mode: str = "sequential",
     output_dir: Path,
     python_executable: Path | None = None,
 ) -> tuple[ArtifactPacket, ConsolidatedReview]:
+    if execution_mode not in {"sequential", "parallel"}:
+        raise ValueError(f"unsupported execution mode: {execution_mode}")
+
     execution_lanes: list[LanePreset] = []
     dropped_requested_lanes: list[str] = []
     if requested_providers:
@@ -108,6 +113,7 @@ def run_orchestration(
     session_log_lines = [
         f"trace_id={artifact.trace_id}",
         f"runtime_mode={runtime_mode}",
+        f"execution_mode={execution_mode}",
         f"planned_providers={','.join(runnable_providers) if runnable_providers else 'none'}",
         f"planned_lanes={','.join(artifact.planned_lanes) if artifact.planned_lanes else 'none'}",
     ]
@@ -143,7 +149,10 @@ def run_orchestration(
     for lane in execution_lanes:
         provider = lane.provider
         session_log_lines.append(f"lane_start={lane.lane_id}:{provider}")
-        provider_review = run_provider_review(
+
+    def execute_lane(lane: LanePreset):
+        provider = lane.provider
+        return run_provider_review(
             provider,
             artifact=artifact,
             metadata=provider_snapshot[provider],
@@ -154,7 +163,21 @@ def run_orchestration(
             provider_override=provider_overrides.get(provider),
             lane=lane,
         )
-        provider_reviews.append(provider_review)
+
+    if execution_mode == "parallel" and len(execution_lanes) > 1:
+        ordered_reviews = [None] * len(execution_lanes)
+        with ThreadPoolExecutor(max_workers=len(execution_lanes)) as executor:
+            futures = {
+                executor.submit(execute_lane, lane): index
+                for index, lane in enumerate(execution_lanes)
+            }
+            for future in as_completed(futures):
+                ordered_reviews[futures[future]] = future.result()
+        provider_reviews = [review for review in ordered_reviews if review is not None]
+    else:
+        provider_reviews = [execute_lane(lane) for lane in execution_lanes]
+
+    for lane, provider_review in zip(execution_lanes, provider_reviews, strict=True):
         session_log_lines.append(
             f"lane_finish={lane.lane_id}:{provider_review.review_stage}:{provider_review.verdict}"
         )

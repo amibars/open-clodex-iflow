@@ -97,6 +97,71 @@ time.sleep({seconds})
     path.write_text(script.strip() + "\n", encoding="utf-8")
 
 
+def write_parallel_sleep_provider_script(path: Path, *, seconds: float) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+import time
+
+args = sys.argv[1:]
+model = ""
+for index, value in enumerate(args):
+    if value == "--model" and index + 1 < len(args):
+        model = args[index + 1]
+        break
+
+time.sleep({seconds})
+
+print(json.dumps({{
+    "provider": "opencode",
+    "verdict": "proceed",
+    "summary": model or "provider-default",
+    "blocking_findings": [],
+    "non_blocking_notes": [],
+    "tests_to_add": [],
+    "plan_risks": [],
+    "confidence": "high"
+}}))
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
+def write_model_sensitive_timeout_provider_script(path: Path, *, timeout_model: str, seconds: int) -> None:
+    script = f"""
+from __future__ import annotations
+
+import json
+import sys
+import time
+
+args = sys.argv[1:]
+model = ""
+for index, value in enumerate(args):
+    if value == "--model" and index + 1 < len(args):
+        model = args[index + 1]
+        break
+
+if model == {timeout_model!r}:
+    sys.stdout.write("partial timeout lane")
+    sys.stdout.flush()
+    time.sleep({seconds})
+else:
+    print(json.dumps({{
+        "provider": "opencode",
+        "verdict": "proceed",
+        "summary": model or "provider-default",
+        "blocking_findings": [],
+        "non_blocking_notes": [],
+        "tests_to_add": [],
+        "plan_risks": [],
+        "confidence": "high"
+    }}))
+"""
+    path.write_text(script.strip() + "\n", encoding="utf-8")
+
+
 def write_nested_payload_provider_script(path: Path, provider: str) -> None:
     script = f"""
 from __future__ import annotations
@@ -424,6 +489,88 @@ def test_run_orchestration_defaults_to_lane_aware_planner_pack(tmp_path):
     ]
     assert len(review.provider_reviews) == 1
     assert (tmp_path / "session" / "providers" / "opencode-minimax-plan" / "review.json").exists()
+
+
+def test_run_orchestration_parallel_execution_runs_lanes_concurrently(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_parallel_sleep_provider_script(
+        script_path,
+        seconds=0.8,
+    )
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    started = time.monotonic()
+    _, review = run_orchestration(
+        task="parallel smoke",
+        runtime_mode="headless",
+        execution_mode="parallel",
+        provider_snapshot=snapshot,
+        requested_lanes=["opencode-minimax-plan", "nvidia-glm51-plan"],
+        timeout_seconds=5,
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 1.5
+    assert review.verdict == "proceed"
+    assert [item.lane_id for item in review.provider_reviews] == [
+        "opencode-minimax-plan",
+        "nvidia-glm51-plan",
+    ]
+    assert (tmp_path / "session" / "providers" / "opencode-minimax-plan" / "attempt.json").exists()
+    assert (tmp_path / "session" / "providers" / "nvidia-glm51-plan" / "attempt.json").exists()
+    session_log = (tmp_path / "session" / "session.log").read_text(encoding="utf-8")
+    assert "execution_mode=parallel" in session_log
+
+
+def test_run_orchestration_parallel_timeout_does_not_cancel_sibling_lane(tmp_path):
+    script_path = tmp_path / "opencode.py"
+    write_model_sensitive_timeout_provider_script(
+        script_path,
+        timeout_model="nvidia/z-ai/glm-5.1",
+        seconds=2,
+    )
+    snapshot = {
+        "opencode": {
+            "available": True,
+            "binary": str(script_path),
+            "state_dirs": ["C:/fake/opencode"],
+        }
+    }
+
+    _, review = run_orchestration(
+        task="parallel timeout isolation",
+        runtime_mode="headless",
+        execution_mode="parallel",
+        provider_snapshot=snapshot,
+        requested_lanes=["opencode-minimax-plan", "nvidia-glm51-plan"],
+        timeout_seconds=1,
+        output_dir=tmp_path / "session",
+        python_executable=Path(sys.executable),
+    )
+
+    by_lane = {item.lane_id: item for item in review.provider_reviews}
+    assert by_lane["opencode-minimax-plan"].review_stage == "runtime"
+    assert by_lane["nvidia-glm51-plan"].review_stage == "synthetic-failure"
+    timeout_attempt = json.loads(
+        (tmp_path / "session" / "providers" / "nvidia-glm51-plan" / "attempt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    success_attempt = json.loads(
+        (tmp_path / "session" / "providers" / "opencode-minimax-plan" / "attempt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert timeout_attempt["state"] == "timeout_incomplete"
+    assert success_attempt["state"] == "completed"
 
 
 def test_select_runner_returns_expected_execution_function():

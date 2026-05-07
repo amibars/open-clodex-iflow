@@ -1,6 +1,6 @@
 # Attempt Timeout Retry Contract
 
-Status: normative design gate before true parallel fan-out or debate loops.
+Status: normative design gate for provider attempts, optional parallel fan-out, and future debate loops.
 
 This document defines how `open-clodex-iflow` must describe provider attempts, timeouts, retries, and partial output. It exists to prevent a common orchestration bug: treating every timeout as a clean provider failure and losing the evidence needed to recover.
 
@@ -10,10 +10,10 @@ Applies to:
 
 - `/orch` runtime provider execution.
 - Sequential v1 lanes.
-- Future parallel fan-out and debate loops.
+- Optional single-pass parallel fan-out and future debate loops.
 - Future visible OS-window worker lanes.
 
-Does not imply that retry loops or parallel fan-out are already implemented.
+Does not imply that retry loops or debate loops are already implemented.
 
 ## Terms
 
@@ -122,17 +122,18 @@ Aggregation may proceed when one or more lanes fail, but it must:
 - distinguish provider runtime failure from code/design findings,
 - include the artifact paths needed for operator inspection.
 
-## Tests Required Before Fan-Out
+## Required Coverage
 
-Before true parallel fan-out is implemented, tests must cover:
+Runtime tests must cover:
 
 - timeout preserves partial stdout/stderr,
 - invalid nested/incidental JSON is rejected,
 - skipped requested lanes are logged,
-- retry creates a new attempt record,
+- manual retries create new output directories or attempt records before automatic retries are introduced,
 - aggregation does not treat synthetic failures as real provider reviews,
 - operator-visible paths are included in failure summaries.
+- parallel execution preserves sibling lane results when another lane times out.
 
 ## Current Implementation Status
 
-Current sequential v1 writes `attempt.json` for provider lanes and preserves timeout/invalid/failure evidence separately from normalized `review.json`. Retry loops and parallel fan-out are still not implemented.
+Current v1 writes `attempt.json` for provider lanes and preserves timeout/invalid/failure evidence separately from normalized `review.json`. Runtime remains sequential by default; optional `--execution parallel` runs selected lanes concurrently in a single pass. Retry loops and debate loops are still not implemented.

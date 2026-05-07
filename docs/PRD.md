@@ -38,10 +38,10 @@
 | --- | --- | --- | --- | --- |
 | FR-01 | Bootstrap scaffold | Команда scaffold создает Iron Dome-compatible структуру проекта с обязательными docs и tasks | P0 | Implemented |
 | FR-02 | Solo mode | `/solo` не делает fan-out и не отправляет контекст другим LLM | P0 | Implemented as packet-only flow |
-| FR-03 | Orch mode | `/orch` собирает artifact packet, запускает runnable provider adapters, пишет per-provider `review.json` и возвращает один consolidated review | P0 | Implemented as sequential runtime with synthetic failure fallback |
+| FR-03 | Orch mode | `/orch` собирает artifact packet, запускает runnable provider adapters, пишет per-provider `attempt.json`/`review.json` и возвращает один consolidated review | P0 | Implemented as sequential default runtime with optional single-pass parallel execution and synthetic failure fallback |
 | FR-04 | System discovery | `doctor` показывает найденные CLI и локальные state/auth директории | P0 | Implemented |
 | FR-05 | Existing auth reuse | Оркестратор сначала пытается использовать уже существующие системные CLI и их local state | P0 | Implemented for discovery/preflight |
-| FR-06 | Runtime mode toggle | `/orch` поддерживает `windowed` и `headless`, при этом по умолчанию используется `windowed` | P1 | Implemented as visible sequential runtime; dedicated OS-window lanes deferred |
+| FR-06 | Runtime mode toggle | `/orch` поддерживает `windowed` и `headless`, при этом по умолчанию используется `windowed` | P1 | Implemented as visible sequential-by-default runtime; dedicated OS-window lanes deferred |
 | FR-07 | Custom API fallback | Можно задать custom API/base URL как override, если reuse existing auth невозможен | P1 | Planned |
 
 ---
@@ -91,7 +91,9 @@
 ### Next implementation slice
 
 - [x] dedicated window vs visible sequential boundary зафиксирован как stable contract
-- [x] parallel fan-out/debate policy зафиксирована до реализации
+- [x] parallel execution and debate-loop policy зафиксированы до реализации
+- [x] optional single-pass parallel fan-out implemented behind explicit `--execution parallel`
+- [ ] debate loop implementation remains deferred
 - [ ] dedicated window backend implementation покрыт тестами до release claim
 - [ ] custom API/base URL override покрыт тестами
 - [ ] live provider compatibility matrix подтверждена для всех supported CLIs

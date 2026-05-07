@@ -2,7 +2,7 @@
 
 Status: normative design gate before implementing parallel provider execution or debate loops.
 
-Current v1 runs lanes sequentially. This document defines the next safe expansion boundary: parallel fan-out without hidden write authority, hidden retries, or ambiguous aggregation.
+Current v1 defaults to sequential execution and supports optional single-pass parallel lane fan-out. This document defines the safe expansion boundary: parallel fan-out without hidden write authority, hidden retries, or ambiguous aggregation.
 
 ## Scope
 
@@ -114,7 +114,7 @@ Future CLI flags should be explicit:
 --timeout-seconds <n>
 ```
 
-Default remains `sequential` until parallel CI/runtime coverage is stable.
+Default remains `sequential`; `parallel` must be requested explicitly.
 
 ## Tests Required Before Implementation Claim
 
@@ -127,4 +127,4 @@ Default remains `sequential` until parallel CI/runtime coverage is stable.
 
 ## Current Implementation Status
 
-Not implemented. Current v1 remains sequential by design. This contract must be satisfied before release notes or docs claim parallel fan-out.
+Implemented for optional single-pass parallel lane execution through `--execution parallel`. Not implemented: debate loops, multi-pass review, automatic retry, or dedicated OS-window fan-out.

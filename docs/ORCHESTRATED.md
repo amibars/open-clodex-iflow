@@ -21,6 +21,8 @@
 - writes per-provider `attempt.json`, `review.json`, raw outputs, and one consolidated review
 - default runtime mode: `windowed`
 - optional runtime mode: `headless`
+- default execution mode: `sequential`
+- optional execution mode: `parallel`
 - default lane set: `default-planners`
 - recommended multi-review lane set: `recommended-planners`
 - explicit lane inspection: `lanes`
@@ -36,7 +38,7 @@
 5. Aggregation: свести finding-ы и verdict в `consolidated_review.json`
 6. Handback: вернуть решение в Codex/human control plane
 
-Этот repo сейчас реализует `intake + preflight + sequential provider execution + aggregation`.
+Этот repo сейчас реализует `intake + preflight + sequential or optional parallel provider execution + aggregation`.
 
 ---
 
@@ -46,11 +48,12 @@
 2. Discover providers and reusable auth/state
 3. Resolve lane set or explicit lanes
 4. Select runtime mode (`windowed` default)
-5. Filter down to runnable providers with explicit adapter support
-6. Execute lanes sequentially
-7. Collect per-provider review outputs
-8. Aggregate into consolidated review
-9. Hand result back to Codex
+5. Select execution mode (`sequential` default, `parallel` explicit)
+6. Filter down to runnable providers with explicit adapter support
+7. Execute lanes sequentially or as independent parallel workers
+8. Collect per-provider review outputs
+9. Aggregate into consolidated review
+10. Hand result back to Codex
 
 ---
 
@@ -101,6 +104,7 @@
 - OpenCode benchmark evidence is tracked in `docs/OPENCODE_MODEL_BENCHMARK.md`; TUI-only models are not defaults until their CLI ids and non-interactive behavior are verified
 - NVIDIA lane presets are routed through OpenCode and require an OpenCode `nvidia` provider config plus `NVIDIA_API_KEY`; they replace iFlow in the recommended planner set, not in the legacy adapter layer
 - legacy `--providers` remains available as a compatibility path when operator wants raw provider routing instead of lane presets
+- `--execution parallel` runs selected lanes concurrently in a single pass; it does not enable debate, retry loops, or write authority
 
 ---
 
@@ -109,15 +113,16 @@
 - `doctor` and orchestration preflight already reuse system discovery and known state dirs
 - `/solo` is a real packet-producing command and does not emit external packets
 - `/orch` now executes runnable lanes sequentially and writes normalized provider reviews
+- `/orch --execution parallel` runs selected lanes concurrently while preserving per-lane artifact directories and deterministic aggregation order
 - provider failures are normalized into synthetic blocking reviews instead of crashing the whole run
 - current live compatibility is versioned in `docs/PROVIDER_COMPATIBILITY.md`
-- parallel fan-out/debate, dedicated OS-window spawning, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
+- debate loops, dedicated OS-window spawning, memory, MCP, and plugin-style expansion remain gated by their docs/security contracts
 
 ---
 
 ## Consensus policy (v1)
 
-- single-pass fan-out
+- single-pass fan-out, sequential by default and parallel only when explicitly requested
 - no debate loop in v1
 - consolidated verdict:
   - `proceed`

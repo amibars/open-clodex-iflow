@@ -68,6 +68,8 @@ def test_orch_uses_runtime_orchestrator(monkeypatch, tmp_path):
             "iflow",
             "--timeout-seconds",
             "15",
+            "--execution",
+            "parallel",
             "--output-dir",
             str(tmp_path),
         ]
@@ -81,6 +83,7 @@ def test_orch_uses_runtime_orchestrator(monkeypatch, tmp_path):
     assert review["verdict"] == "proceed"
     assert captured["requested_providers"] == ["iflow"]
     assert captured["timeout_seconds"] == 15
+    assert captured["execution_mode"] == "parallel"
 
 
 def test_orch_defaults_to_lane_pack_when_no_explicit_provider_selection(monkeypatch, tmp_path):
@@ -130,6 +133,7 @@ def test_orch_defaults_to_lane_pack_when_no_explicit_provider_selection(monkeypa
     assert captured["requested_lanes"] is None
     assert captured["lane_set"] == "default-planners"
     assert captured["requested_providers"] is None
+    assert captured["execution_mode"] == "sequential"
 
 
 def test_orch_accepts_recommended_planners_lane_set(monkeypatch, tmp_path):
@@ -210,6 +214,7 @@ def test_lanes_command_prints_default_and_optional_profiles(capsys):
     assert "iflow-glm5-plan-thinking" in captured
     assert "legacy/API-key" in captured
     assert "opencode-minimax-build-thinking" in captured
+    assert "--execution parallel" in captured
 
 
 def test_scaffold_command_creates_workspace(tmp_path):

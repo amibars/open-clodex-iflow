@@ -12,10 +12,10 @@ This is a reference audit, not a decision to vendor code. The current v1 product
 
 - Reusing already installed provider CLIs and their local auth state.
 - Running `/solo` with no fan-out.
-- Running `/orch` as intake, preflight, sequential provider execution, and consolidated review.
+- Running `/orch` as intake, preflight, sequential-by-default provider execution, optional single-pass parallel execution, and consolidated review.
 - Keeping provider outputs constrained by `artifact.json`, `review.json`, and `consolidated_review.json`.
 - Defaulting to operator-visible behavior while not yet claiming dedicated OS-window spawning.
-- Treating parallel debate loops, mailbox routing, and memory as future layers rather than hidden v1 features.
+- Treating debate loops, mailbox routing, and memory as future layers rather than hidden v1 features.
 
 Any external reuse must preserve these boundaries.
 

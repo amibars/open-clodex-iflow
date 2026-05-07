@@ -79,6 +79,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=180,
         help="Maximum runtime per provider execution",
     )
+    orch.add_argument(
+        "--execution",
+        choices=["sequential", "parallel"],
+        default="sequential",
+        help="Lane execution strategy; defaults to stable sequential execution",
+    )
 
     subparsers.add_parser("doctor", help="Inspect installed CLIs and known local state")
     subparsers.add_parser("lanes", help="List available lane presets and CLI toggles")
@@ -146,6 +152,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             or None,
             lane_set=None if args.providers else (args.lane_set or DEFAULT_LANE_SET_ID),
             timeout_seconds=args.timeout_seconds,
+            execution_mode=args.execution,
             output_dir=output_dir,
         )
         artifact_path = write_json(output_dir / "artifact.json", artifact)

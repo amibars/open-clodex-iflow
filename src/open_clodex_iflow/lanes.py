@@ -236,6 +236,7 @@ def render_lane_catalog() -> str:
             "- /orch uses the default-planners lane set unless you pass --providers or --lanes.",
             "- --lane-set recommended-planners selects MiniMax M2.5 plus the strongest verified NVIDIA planner lanes.",
             "- --lanes laneA,laneB selects explicit lanes.",
+            "- --execution parallel runs selected lanes concurrently in a single pass; default is sequential.",
             "- iFlow lanes are explicit legacy/API-key lanes after the April 2026 CLI shutdown notice.",
             "- --providers claude,iflow,opencode keeps the legacy provider-only path.",
         ]
